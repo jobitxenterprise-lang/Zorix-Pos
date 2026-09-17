@@ -22,9 +22,9 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: "Moncho's Bar",
-        short_name: "Moncho's Bar",
-        description: 'Punto de Venta Moncho Bar',
+        name: "Zorix POS",
+        short_name: "Zorix POS",
+        description: 'Punto de Venta Zorix POS',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

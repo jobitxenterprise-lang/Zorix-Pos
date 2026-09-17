@@ -1,6 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../supabaseClient";
 import { INITIAL_PRODUCTS, INITIAL_TABLES, CATEGORIES } from "../mock/initialData";
+import { 
+  getOfflineQueue, 
+  enqueueOfflineAction, 
+  syncOfflineQueue, 
+  saveOfflineSnapshot, 
+  getOfflineSnapshot 
+} from "../utils/offlineQueue";
 
 const BarContext = createContext();
 const SESSION_KEY = "bar_active_session_v1";
@@ -33,18 +40,32 @@ export const BarProvider = ({ children }) => {
   const [currentShiftId, setCurrentShiftId] = useState(null);
   const [shiftStartTime, setShiftStartTime] = useState(null);
 
+  // Estados para Carga de Historial Bajo Demanda (Admin / Reportes)
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+
+  // Estados de Conexión y Cola Offline
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [pendingSyncCount, setPendingSyncCount] = useState(() => getOfflineQueue().length);
+
   const [isLoading, setIsLoading] = useState(true);
 
   // Referencias para proteger el estado en tiempo real contra Race Conditions
   const pendingSyncTablesRef = useRef(new Map());
   const updateOrderDebounceTimersRef = useRef(new Map());
+  const inFlightWritesRef = useRef(new Map());
+  const latestPendingWriteRef = useRef(new Map());
+  const fetchSeqRef = useRef(0);
+  const realtimeOrdersDebounceRef = useRef(null);
 
   const fetchData = async (silent = false) => {
+    const mySeq = ++fetchSeqRef.current;
     try {
       if (!silent) setIsLoading(true);
 
       // Fetch Global Configs
       const { data: settingsData } = await supabase.from("settings").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
       if (settingsData) {
         const rate = settingsData.find((s) => s.key === "exchange_rate");
         if (rate) setExchangeRate(rate.value);
@@ -52,6 +73,7 @@ export const BarProvider = ({ children }) => {
 
       // Fetch Categories from Supabase
       const { data: categoriesData } = await supabase.from("categories").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
       if (categoriesData && categoriesData.length > 0) {
         setCategories(
           categoriesData.map((c) => ({
@@ -64,6 +86,7 @@ export const BarProvider = ({ children }) => {
 
       // Fetch Users
       const { data: usersData } = await supabase.from("users").select("*");
+      if (mySeq !== fetchSeqRef.current) return;
       if (usersData) {
         setUsers(
           usersData.map((u) => ({
@@ -82,7 +105,12 @@ export const BarProvider = ({ children }) => {
       const { data: bundlesData } = await supabase
         .from("product_bundles")
         .select("*");
+      if (mySeq !== fetchSeqRef.current) return;
+
       let mappedProducts = [];
+      let newTables = [];
+      let currentShiftInvoices = [];
+      let calculatedHistory = [];
       if (productsData) {
         mappedProducts = productsData.map((p) => {
           const bundleItems = bundlesData
@@ -109,369 +137,747 @@ export const BarProvider = ({ children }) => {
       }
 
       // Fetch Tables & Orders
-      const { data: tablesData } = await supabase.from("tables").select("*");
-      const { data: ordersData } = await supabase.from("orders").select("*");
+      const { data: tablesData, error: tablesError } = await supabase.from("tables").select("*");
+      const { data: ordersData, error: ordersError } = await supabase.from("orders").select("*");
+
+      if (mySeq !== fetchSeqRef.current) return;
+      if (tablesError) throw new Error("Fallo al obtener mesas: " + tablesError.message);
+      if (ordersError) throw new Error("Fallo al obtener órdenes: " + ordersError.message);
 
       if (tablesData && productsData) {
         // Función auxiliar que resuelve los items de una mesa protegiendo contra race conditions
         const resolveTableItems = (tableId, dbTable, tableOrders) => {
           const sId = String(tableId);
+          // El snapshot local es autoritativo hasta que su escritura atómica termina.
+          const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+          const shieldDuration = isOffline ? 300000 : 2000;
+
           const pending = pendingSyncTablesRef.current.get(sId);
-          if (pending && Date.now() - pending.timestamp < 3500) {
+          const hasPendingActive =
+            pending &&
+            !pending.isDeleted &&
+            Date.now() - pending.timestamp < shieldDuration;
+
+          const dbItemsMap = new Map();
+          const dbUnprintedMap = new Map();
+
+          tableOrders.forEach((order) => {
+            const rawProd =
+              productsData.find((p) => String(p.id) === String(order.product_id)) ||
+              (INITIAL_PRODUCTS || []).find(
+                (p) => String(p.id) === String(order.product_id),
+              );
+
+            const product = rawProd
+              ? {
+                  id: rawProd.id,
+                  name: rawProd.name,
+                  category: rawProd.category_id || rawProd.category,
+                  price: Number(rawProd.price),
+                  cost: Number(rawProd.cost || 0),
+                  stock: rawProd.stock !== null ? Number(rawProd.stock) : null,
+                  image:
+                    rawProd.icon_path && rawProd.icon_path.startsWith("http")
+                      ? rawProd.icon_path
+                      : imageDictionary[rawProd.name] || "",
+                }
+              : {
+                  id: order.product_id,
+                  name: "Producto",
+                  category: "general",
+                  price: 0,
+                  cost: 0,
+                  stock: null,
+                  image: "",
+                };
+
+            const sProdId = String(product.id);
+            const qty = Number(order.quantity) || 1;
+
+            if (dbItemsMap.has(sProdId)) {
+              dbItemsMap.get(sProdId).quantity += qty;
+            } else {
+              dbItemsMap.set(sProdId, { product, quantity: qty });
+            }
+
+            if (!order.is_printed) {
+              if (dbUnprintedMap.has(sProdId)) {
+                dbUnprintedMap.get(sProdId).quantity += qty;
+              } else {
+                dbUnprintedMap.set(sProdId, { product, quantity: qty });
+              }
+            }
+          });
+
+          if (!hasPendingActive) {
             return {
-              status: pending.items.length > 0 ? "ocupada" : "libre",
-              customerName: pending.customerName || (dbTable?.customer_name || ""),
-              items: pending.items,
-              unprintedItems: pending.unprintedItems || [],
+              status: dbTable.status || "libre",
+              customerName: dbTable.customer_name || "",
+              items: Array.from(dbItemsMap.values()),
+              unprintedItems: Array.from(dbUnprintedMap.values()),
             };
           }
+
           return {
-            status: dbTable?.status || "libre",
-            customerName: dbTable?.customer_name || "",
-            items: tableOrders.map((o) => {
-              const pData = productsData.find(
-                (p) => String(p.id) === String(o.product_id),
-              );
-              return {
-                product: {
-                  id: pData?.id,
-                  name: pData?.name,
-                  price: Number(pData?.price || 0),
-                  cost: Number(pData?.cost || 0),
-                  category: pData?.category_id,
-                },
-                quantity: o.quantity,
-              };
-            }),
-            unprintedItems: tableOrders
-              .filter((o) => !o.is_printed)
-              .map((o) => {
-                const pData = productsData.find(
-                  (p) => String(p.id) === String(o.product_id),
-                );
-                return {
-                  product: { id: pData?.id, name: pData?.name },
-                  quantity: o.quantity,
-                };
-              }),
+            status: pending.status || dbTable.status || "ocupada",
+            customerName: pending.customerName !== undefined ? pending.customerName : dbTable.customer_name || "",
+            // No mezclar con la BD: una reducción a cero debe seguir siendo cero.
+            items: pending.items || [],
+            unprintedItems: pending.unprintedItems || [],
           };
         };
 
-        // Assemble initial tables array with their orders
-        let newTables = INITIAL_TABLES.map((initTable) => {
-          const dbTable = tablesData.find(
-            (t) => String(t.id) === String(initTable.id),
-          );
+        // Assemble active tables from database
+        newTables = [];
+        for (const dbTable of tablesData) {
+          const sId = String(dbTable.id);
+          const pending = pendingSyncTablesRef.current.get(sId);
+          if (pending && pending.isDeleted && Date.now() - pending.timestamp < 300000) {
+            continue; // Ignorar mesas que fueron cobradas o canceladas localmente
+          }
+
           const tableOrders =
             ordersData?.filter(
-              (o) => String(o.table_id) === String(initTable.id),
+              (o) => String(o.table_id) === sId,
             ) || [];
 
-          const resolved = resolveTableItems(initTable.id, dbTable, tableOrders);
+          const resolved = resolveTableItems(sId, dbTable, tableOrders);
 
-          return {
-            ...initTable,
-            id: String(initTable.id),
-            status: resolved.status,
-            customerName: resolved.customerName,
-            assignedWaiterId: dbTable?.assigned_waiter_id,
-            createdAt: dbTable?.created_at,
-            items: resolved.items,
-            unprintedItems: resolved.unprintedItems,
-          };
-        });
+          // Si la mesa está en estado libre y no tiene items ni pending activo, no la mostramos como mesa activa
+          if (resolved.status === "libre" && resolved.items.length === 0 && !pending) {
+            continue;
+          }
 
-        // Add dynamically created bar accounts
-        const barAccounts = tablesData.filter((t) => t.is_bar_account);
-        for (const barAcc of barAccounts) {
-          const tableOrders =
-            ordersData?.filter(
-              (o) => String(o.table_id) === String(barAcc.id),
-            ) || [];
-          const resolved = resolveTableItems(barAcc.id, barAcc, tableOrders);
           newTables.push({
-            id: String(barAcc.id),
-            name: barAcc.name,
+            id: sId,
+            name: dbTable.name || (dbTable.is_bar_account ? "Barra" : `Mesa ${sId}`),
             status: resolved.status,
             customerName: resolved.customerName,
-            assignedWaiterId: barAcc.assigned_waiter_id,
-            createdAt: barAcc.created_at,
-            isBar: true,
+            assignedWaiterId: dbTable.assigned_waiter_id,
+            assignedWaiterName: usersData?.find(u => u.id === dbTable.assigned_waiter_id)?.name,
+            createdAt: dbTable.created_at,
+            isBar: Boolean(dbTable.is_bar_account),
+            orderVersion: Number(dbTable.order_version || 0),
             items: resolved.items,
             unprintedItems: resolved.unprintedItems,
           });
         }
 
-        // Add extra normal tables created dynamically (e.g. Mesa 11, Mesa 12)
-        const extraTables = tablesData.filter(
-          (t) => !t.is_bar_account && !INITIAL_TABLES.some((init) => String(init.id) === String(t.id))
-        );
-        for (const extra of extraTables) {
-          const tableOrders =
-            ordersData?.filter(
-              (o) => String(o.table_id) === String(extra.id),
-            ) || [];
-          const resolved = resolveTableItems(extra.id, extra, tableOrders);
-          newTables.push({
-            id: String(extra.id),
-            name: extra.name || `Mesa ${extra.id}`,
-            status: resolved.status,
-            customerName: resolved.customerName,
-            assignedWaiterId: extra.assigned_waiter_id,
-            createdAt: extra.created_at,
-            isBar: false,
-            items: resolved.items,
-            unprintedItems: resolved.unprintedItems,
-          });
+        // Incorporar mesas creadas en cola offline o pending
+        for (const [pId, pData] of pendingSyncTablesRef.current.entries()) {
+          if (!pData.isDeleted && !newTables.some((t) => String(t.id) === String(pId))) {
+            newTables.push({
+              id: pId,
+              name: pData.name || (pId.startsWith("barra_") ? "Barra" : `Mesa ${pId}`),
+              status: pData.status || "ocupada",
+              customerName: pData.customerName || "",
+              assignedWaiterId: currentUser?.id,
+              assignedWaiterName: currentUser?.name,
+              createdAt: new Date().toISOString(),
+              isBar: pId.startsWith("barra_"),
+              orderVersion: pData.orderVersion || 0,
+              items: pData.items || [],
+              unprintedItems: pData.unprintedItems || [],
+            });
+          }
         }
 
-        // Sort tables numerically so Mesa 1, Mesa 2, ... Mesa 11, Mesa 12 are in order
+        // Ordenar mesas cronológicamente
         newTables.sort((a, b) => {
           if (a.isBar && !b.isBar) return 1;
           if (!a.isBar && b.isBar) return -1;
-          const numA = parseInt(a.id, 10);
-          const numB = parseInt(b.id, 10);
-          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-          return a.name.localeCompare(b.name);
+          return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
         });
 
-        setTables(newTables);
+        if (mySeq === fetchSeqRef.current) {
+          setTables(newTables);
+        }
       }
 
-      // Fetch Shifts & Financials
-      const { data: shiftsData } = await supabase
+      // 1. Fetch Active Shift (1 sola fila para el turno actual)
+      const { data: activeShiftsData } = await supabase
         .from("shifts")
         .select("*")
-        .order("opened_at", { ascending: false });
-      if (shiftsData && shiftsData.length > 0) {
-        const activeShift = shiftsData.find((s) => !s.closed_at);
-        if (activeShift) {
-          setCurrentShiftId(activeShift.id);
-          setShiftStartTime(activeShift.opened_at);
+        .is("closed_at", null)
+        .order("opened_at", { ascending: false })
+        .limit(1);
+
+      if (mySeq !== fetchSeqRef.current) return;
+
+      const activeShift = activeShiftsData && activeShiftsData.length > 0 ? activeShiftsData[0] : null;
+
+      // 2. Fetch Invoices únicamente del turno activo
+      currentShiftInvoices = [];
+      if (activeShift) {
+        setCurrentShiftId(activeShift.id);
+        setShiftStartTime(activeShift.opened_at);
+
+        const { data: invData } = await supabase
+          .from("invoices")
+          .select("*")
+          .eq("shift_id", activeShift.id);
+
+        if (mySeq !== fetchSeqRef.current) return;
+
+        let activeShiftItems = [];
+        if (invData && invData.length > 0) {
+          const invIds = invData.map((inv) => inv.id);
+          const { data: invItemsData } = await supabase
+            .from("invoice_items")
+            .select("*")
+            .in("invoice_id", invIds);
+
+          if (mySeq !== fetchSeqRef.current) return;
+          activeShiftItems = invItemsData || [];
         }
 
-        // Fetch all invoices
-        const { data: invData } = await supabase.from("invoices").select("*");
-        const { data: invItemsData } = await supabase
-          .from("invoice_items")
-          .select("*");
-
-        const allMappedInvoices = (invData || []).map((inv) => {
-          const items = (invItemsData || [])
-            .filter((i) => i.invoice_id === inv.id)
-            .map((i) => {
-              const pMatch = (productsData || []).find(
-                (p) => p.name?.trim().toLowerCase() === i.product_name?.trim().toLowerCase()
-              );
-              return {
-                name: i.product_name,
-                quantity: i.quantity,
-                price: Number(i.price_at_sale),
-                cost: Number(i.cost_at_sale),
-                category: pMatch?.category || "General",
-              };
-            });
-          return {
-            id: inv.id,
-            shiftId: inv.shift_id,
-            tableName: inv.table_name,
-            customerName: inv.customer_name,
-            waiterName: inv.waiter_name,
-            total: Number(inv.total),
-            paymentMethod: inv.payment_method,
-            transactionId: inv.transaction_id,
-            fullDate: inv.created_at,
-            date: new Date(inv.created_at).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            items,
-          };
-        });
-
-        // Current shift invoices
-        setPaidInvoices(
-          allMappedInvoices.filter(
-            (i) => i.shiftId === (activeShift ? activeShift.id : null),
-          ),
-        );
-
-        // History logic
-        const closedShifts = shiftsData.filter((s) => s.closed_at);
-        setCashRegisterHistory(
-          closedShifts.map((cs) => {
-            const cashier = (usersData || []).find(
-              (u) => u.id === cs.closed_by || u.id === cs.opened_by
-            );
-            return {
-              id: cs.id,
-              cashierName: cashier?.name || "Cajero Principal",
-              startTime: cs.opened_at,
-              endTime: cs.closed_at,
-              totalSales: Number(cs.total_real || cs.total_expected),
-              totalCash: allMappedInvoices
-                .filter(
-                  (i) => i.shiftId === cs.id && i.paymentMethod === "Efectivo",
-                )
-                .reduce((s, i) => s + i.total, 0),
-              totalCard: allMappedInvoices
-                .filter(
-                  (i) => i.shiftId === cs.id && i.paymentMethod !== "Efectivo",
-                )
-                .reduce((s, i) => s + i.total, 0),
-              invoices: allMappedInvoices.filter((i) => i.shiftId === cs.id),
-            };
+        currentShiftInvoices = (invData || []).map((inv) => ({
+          id: inv.id,
+          shiftId: inv.shift_id,
+          tableName: inv.table_name,
+          customerName: inv.customer_name,
+          waiterName: inv.waiter_name,
+          total: Number(inv.total),
+          paymentMethod: inv.payment_method,
+          transactionId: inv.transaction_id,
+          fullDate: inv.created_at,
+          date: new Date(inv.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
           }),
-        );
+          items: activeShiftItems
+            .filter((it) => it.invoice_id === inv.id)
+            .map((it) => ({
+              name: it.product_name,
+              quantity: it.quantity,
+              price: Number(it.price_at_sale),
+              cost: Number(it.cost_at_sale || 0),
+            })),
+        }));
+
+        setPaidInvoices(currentShiftInvoices);
+      } else {
+        setCurrentShiftId(null);
+        setShiftStartTime(null);
+        setPaidInvoices([]);
       }
 
-      // Fetch expenses
-      const { data: expData } = await supabase.from("expenses").select("*");
-      if (expData) {
+      // 3. Fetch Expenses acotados (solo del turno activo, o últimas 24h si no hay turno)
+      let expensesQuery = supabase.from("expenses").select("*");
+      if (activeShift) {
+        expensesQuery = expensesQuery.eq("shift_id", activeShift.id);
+      } else {
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        expensesQuery = expensesQuery.gte("created_at", since24h);
+      }
+      const { data: expensesData } = await expensesQuery;
+      if (mySeq !== fetchSeqRef.current) return;
+
+      if (expensesData) {
         setExpenses(
-          expData.map((e) => ({
+          expensesData.map((e) => ({
             id: e.id,
-            description: e.description,
-            category: e.category,
-            amount: Number(e.amount),
-            isPaid: e.is_paid,
-            notificationDate: e.notification_date,
-            date: e.created_at,
+            shiftId: e.shift_id,
+            amount: Number(e.amount) || 0,
+            description: e.description || "",
+            category: e.category || "otros",
+            isPaid: e.is_paid !== false,
+            notificationDate: e.notification_date || null,
+            date: e.created_at || e.date || new Date().toISOString(),
           })),
         );
       }
+
+      // Guardar snapshot para uso offline
+      saveOfflineSnapshot({
+        products: mappedProducts,
+        tables: newTables,
+        categories: categoriesData || CATEGORIES,
+        users: usersData || [],
+        paidInvoices: currentShiftInvoices,
+        cashRegisterHistory: cashRegisterHistory,
+        expenses: expensesData ? expensesData.map(e => ({
+          id: e.id,
+          shiftId: e.shift_id,
+          amount: Number(e.amount) || 0,
+          description: e.description || "",
+          category: e.category || "otros",
+          isPaid: e.is_paid !== false,
+          notificationDate: e.notification_date || null,
+          date: e.created_at || e.date || new Date().toISOString(),
+        })) : [],
+      });
+
     } catch (err) {
-      console.error("Error inicializando Supabase Data", err);
+      console.error("Error al cargar datos desde Supabase:", err);
+      // Cargar desde snapshot si estamos offline
+      if (!navigator.onLine) {
+        const snapshot = getOfflineSnapshot();
+        if (snapshot) {
+          if (snapshot.products) setProducts(snapshot.products);
+          if (snapshot.tables) setTables(snapshot.tables);
+          if (snapshot.categories) setCategories(snapshot.categories);
+          if (snapshot.users) setUsers(snapshot.users);
+          if (snapshot.paidInvoices) setPaidInvoices(snapshot.paidInvoices);
+          if (snapshot.cashRegisterHistory) setCashRegisterHistory(snapshot.cashRegisterHistory);
+          if (snapshot.expenses) setExpenses(snapshot.expenses);
+        }
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
+  // Sincronización en Tiempo Real
   useEffect(() => {
-    fetchData(false);
+    fetchData();
 
-    const triggerSync = () => {
-      fetchData(true);
+    const handleOnline = async () => {
+      setIsOnline(true);
+      const result = await syncOfflineQueue(supabase, () => {
+        setPendingSyncCount(getOfflineQueue().length);
+        fetchData(true);
+      });
+      setPendingSyncCount(result.remaining);
     };
 
-    // 1. Instant WebSocket Realtime Event Listener
+    const handleOffline = () => setIsOnline(false);
+
+    const handleFocus = () => {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        if (inFlightWritesRef.current.size === 0) {
+          fetchData(true);
+        }
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("focus", handleFocus);
+
     const channel = supabase
-      .channel(`bar-realtime-live`)
+      .channel("pos-realtime-channel")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tables" },
-        triggerSync,
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            const delId = String(payload.old.id);
+            setTables((prev) => prev.filter((t) => String(t.id) !== delId));
+            return;
+          }
+
+          const raw = payload.new;
+          if (!raw) return;
+          const sId = String(raw.id);
+
+          const pending = pendingSyncTablesRef.current.get(sId);
+          if (pending && !pending.isDeleted && Date.now() - pending.timestamp < 3000) {
+            return;
+          }
+
+          setTables((prev) => {
+            const exists = prev.some((t) => String(t.id) === sId);
+            if (exists) {
+              return prev.map((t) =>
+                String(t.id) === sId
+                  ? {
+                      ...t,
+                      name: raw.name || t.name,
+                      status: raw.status || t.status,
+                      customerName: raw.customer_name !== undefined ? raw.customer_name : t.customerName,
+                      orderVersion: Number(raw.order_version || t.orderVersion),
+                    }
+                  : t
+              );
+            }
+            return [
+              ...prev,
+              {
+                id: sId,
+                name: raw.name || (raw.is_bar_account ? "Barra" : `Mesa ${sId}`),
+                status: raw.status || "ocupada",
+                customerName: raw.customer_name || "",
+                assignedWaiterId: raw.assigned_waiter_id,
+                assignedWaiterName: users.find((u) => u.id === raw.assigned_waiter_id)?.name,
+                createdAt: raw.created_at,
+                isBar: Boolean(raw.is_bar_account),
+                orderVersion: Number(raw.order_version || 0),
+                items: [],
+                unprintedItems: [],
+              },
+            ];
+          });
+        }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
-        triggerSync,
+        () => {
+          if (realtimeOrdersDebounceRef.current) {
+            clearTimeout(realtimeOrdersDebounceRef.current);
+          }
+          realtimeOrdersDebounceRef.current = setTimeout(() => {
+            fetchData(true);
+          }, 1800);
+        }
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "invoices" },
-        triggerSync,
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "categories" },
-        triggerSync,
+        { event: "*", schema: "public", table: "shifts" },
+        () => {
+          fetchData(true);
+        }
       )
       .subscribe();
 
-    // 2. High-frequency 2-second background sync fallback
-    // Guarantees 100% instant sync across devices, mobile tablets, and Wi-Fi networks even if WebSockets fluctuate
-    const syncInterval = setInterval(() => {
-      fetchData(true);
-    }, 2000);
-
     return () => {
-      clearInterval(syncInterval);
+      if (realtimeOrdersDebounceRef.current) {
+        clearTimeout(realtimeOrdersDebounceRef.current);
+      }
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("focus", handleFocus);
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Carga de Historial de Turnos, Facturas y Gastos Bajo Demanda (Admin / Reportes)
+  const loadShiftHistory = useCallback(async (force = false) => {
+    if (historyLoaded && !force) return;
+    setIsHistoryLoading(true);
+
+    try {
+      // 1. Obtener los turnos cerrados (últimos 60)
+      const { data: closedShifts, error: shiftsErr } = await supabase
+        .from("shifts")
+        .select("*")
+        .not("closed_at", "is", null)
+        .order("closed_at", { ascending: false })
+        .limit(60);
+
+      if (shiftsErr) throw shiftsErr;
+
+      if (!closedShifts || closedShifts.length === 0) {
+        setCashRegisterHistory([]);
+        setHistoryLoaded(true);
+        return;
+      }
+
+      const closedShiftIds = closedShifts.map((s) => s.id);
+
+      // 2. Traer facturas de esos turnos específicos
+      const { data: histInvoices, error: invErr } = await supabase
+        .from("invoices")
+        .select("*")
+        .in("shift_id", closedShiftIds);
+
+      if (invErr) throw invErr;
+
+      let histInvItems = [];
+      if (histInvoices && histInvoices.length > 0) {
+        const histInvIds = histInvoices.map((i) => i.id);
+        const CHUNK_SIZE = 80;
+        for (let i = 0; i < histInvIds.length; i += CHUNK_SIZE) {
+          const chunk = histInvIds.slice(i, i + CHUNK_SIZE);
+          const { data: itemsChunk } = await supabase
+            .from("invoice_items")
+            .select("*")
+            .in("invoice_id", chunk);
+          if (itemsChunk) {
+            histInvItems.push(...itemsChunk);
+          }
+        }
+      }
+
+      // 3. Traer gastos históricos correspondientes a esos turnos
+      const { data: histExpenses } = await supabase
+        .from("expenses")
+        .select("*")
+        .in("shift_id", closedShiftIds);
+
+      if (histExpenses && histExpenses.length > 0) {
+        setExpenses((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id));
+          const newFormatted = histExpenses
+            .filter((e) => !existingIds.has(e.id))
+            .map((e) => ({
+              id: e.id,
+              shiftId: e.shift_id,
+              amount: Number(e.amount) || 0,
+              description: e.description || "",
+              category: e.category || "otros",
+              isPaid: e.is_paid !== false,
+              notificationDate: e.notification_date || null,
+              date: e.created_at || e.date || new Date().toISOString(),
+            }));
+          return [...prev, ...newFormatted];
+        });
+      }
+
+      // 4. Mapear facturas con sus productos vendidos
+      const mappedInvoices = (histInvoices || []).map((inv) => ({
+        id: inv.id,
+        shiftId: inv.shift_id,
+        tableName: inv.table_name,
+        customerName: inv.customer_name,
+        waiterName: inv.waiter_name,
+        total: Number(inv.total),
+        paymentMethod: inv.payment_method,
+        transactionId: inv.transaction_id,
+        fullDate: inv.created_at,
+        date: new Date(inv.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        items: histInvItems
+          .filter((it) => it.invoice_id === inv.id)
+          .map((it) => ({
+            name: it.product_name,
+            quantity: it.quantity,
+            price: Number(it.price_at_sale),
+            cost: Number(it.cost_at_sale || 0),
+          })),
+      }));
+
+      // 5. Construir historial de cortes estructurado
+      const calculatedHistory = closedShifts.map((shift) => {
+        const shiftInvoices = mappedInvoices.filter((inv) => inv.shiftId === shift.id);
+        const totalSales = shift.total_real !== null && shift.total_real !== undefined
+          ? Number(shift.total_real)
+          : shiftInvoices.reduce((sum, inv) => sum + inv.total, 0);
+        const totalCash = shiftInvoices
+          .filter((inv) => inv.paymentMethod === "Efectivo")
+          .reduce((sum, inv) => sum + inv.total, 0);
+        const totalCard = shiftInvoices
+          .filter((inv) => inv.paymentMethod !== "Efectivo")
+          .reduce((sum, inv) => sum + inv.total, 0);
+
+        const cashier = users.find((u) => u.id === shift.opened_by);
+
+        return {
+          id: shift.id,
+          startTime: shift.opened_at,
+          endTime: shift.closed_at,
+          openTime: shift.opened_at,
+          closeTime: shift.closed_at,
+          totalSales,
+          totalCash,
+          totalCard,
+          cashierName: cashier ? cashier.name : "Cajero",
+          invoices: shiftInvoices,
+        };
+      });
+
+      calculatedHistory.sort((a, b) => new Date(b.endTime) - new Date(a.endTime));
+      setCashRegisterHistory(calculatedHistory);
+      setHistoryLoaded(true);
+    } catch (err) {
+      console.error("Error al cargar historial bajo demanda:", err);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [historyLoaded, users]);
+
+  // Si el usuario cambia o inicia con rol Admin, cargar historial si no está cargado
+  useEffect(() => {
+    if (currentRole === "admin" && !historyLoaded && !isHistoryLoading) {
+      loadShiftHistory();
+    }
+  }, [currentRole, historyLoaded, isHistoryLoading, loadShiftHistory]);
+
+  // Función serializada que ejecuta la escritura a Supabase de forma atómica y ordenada
+  const performTableWrite = async (sTableId) => {
+    const dataToWrite = latestPendingWriteRef.current.get(sTableId);
+    if (!dataToWrite) return;
+
+    // Consumir el pending actual
+    latestPendingWriteRef.current.delete(sTableId);
+
+    const writePromise = (async () => {
+      const {
+        effectiveName,
+        isOccupied,
+        customerName,
+        isBar,
+        items,
+        unprintedItems,
+        targetTable,
+        orderVersion,
+        writeId,
+      } = dataToWrite;
+
+      try {
+        if (!navigator.onLine) {
+          throw new Error("Sin conexión a internet (detectado localmente)");
+        }
+
+        const orderItems = items.map((item) => ({
+          product_id: String(item.product.id),
+          quantity: item.quantity,
+          is_printed: unprintedItems
+            ? !unprintedItems.some(
+                (unprinted) => String(unprinted.product.id) === String(item.product.id),
+              )
+            : true,
+        }));
+        const { data, error } = await supabase.rpc("save_table_order", {
+          p_table_id: sTableId,
+          p_expected_version: orderVersion,
+          p_table: {
+            name: effectiveName,
+            status: isOccupied ? "ocupada" : "libre",
+            customer_name: customerName,
+            assigned_waiter_id: currentUser?.id || "",
+            created_at: targetTable?.createdAt || new Date().toISOString(),
+            is_bar_account: Boolean(isBar),
+          },
+          p_items: orderItems,
+        });
+        if (error) throw error;
+
+        const confirmedVersion = Number(data?.order_version ?? orderVersion + 1);
+        // A queued local edit must use the version that this transaction just created.
+        const nextWrite = latestPendingWriteRef.current.get(sTableId);
+        if (nextWrite) nextWrite.orderVersion = confirmedVersion;
+
+        // Do not clear a newer local edit that arrived while this request ran.
+        if (pendingSyncTablesRef.current.get(sTableId)?.writeId === writeId) {
+          pendingSyncTablesRef.current.delete(sTableId);
+        } else if (pendingSyncTablesRef.current.has(sTableId)) {
+          pendingSyncTablesRef.current.get(sTableId).orderVersion = confirmedVersion;
+        }
+        setTables((prev) => prev.map((table) =>
+          String(table.id) === sTableId
+            ? { ...table, orderVersion: confirmedVersion }
+            : table,
+        ));
+      } catch (dbErr) {
+        // En cualquier caso de error, cancelar cualquier debounce pendiente para esta mesa
+        if (updateOrderDebounceTimersRef.current.has(sTableId)) {
+          clearTimeout(updateOrderDebounceTimersRef.current.get(sTableId));
+          updateOrderDebounceTimersRef.current.delete(sTableId);
+        }
+
+        if (dbErr?.code === "40001" || String(dbErr?.message).includes("TABLE_ORDER_CONFLICT")) {
+          // Another device saved this table first. Discard stale pending write to prevent retry loop.
+          pendingSyncTablesRef.current.delete(sTableId);
+          latestPendingWriteRef.current.delete(sTableId);
+          console.warn("Conflicto de versión en mesa", sTableId);
+          window.alert("Esta cuenta fue modificada desde otro dispositivo o reiniciada. Se cargará la versión más reciente antes de continuar.");
+          fetchData(true);
+          return;
+        }
+
+        if (!navigator.onLine) {
+          console.warn("Sin conexión a internet (encolando offline):", dbErr.message || dbErr);
+          enqueueOfflineAction("UPDATE_ORDER", {
+            tableId: sTableId,
+            tableName: effectiveName,
+            items,
+            unprintedItems,
+            isBar,
+            customerName,
+            waiterId: currentUser?.id,
+            createdAt: targetTable?.createdAt || new Date().toISOString(),
+            expectedVersion: orderVersion,
+          });
+          setPendingSyncCount(getOfflineQueue().length);
+          return;
+        }
+
+        // A server/configuration error must be visible; queuing it would replay an unsafe write forever.
+        pendingSyncTablesRef.current.delete(sTableId);
+        latestPendingWriteRef.current.delete(sTableId);
+        console.error("No se pudo guardar el pedido de forma segura:", dbErr);
+        fetchData(true);
+      }
+    })();
+
+    inFlightWritesRef.current.set(sTableId, writePromise);
+
+    try {
+      await writePromise;
+    } finally {
+      inFlightWritesRef.current.delete(sTableId);
+      // Si mientras corríamos llegó una nueva versión pendiente, procesarla de inmediato
+      if (latestPendingWriteRef.current.has(sTableId)) {
+        performTableWrite(sTableId);
+      }
+    }
+  };
 
   const updateTableOrder = async (
     tableId,
     items,
     customerName = "",
     unprintedItems = null,
+    tableName = null,
   ) => {
     try {
       const isOccupied = items.length > 0;
       const sTableId = String(tableId);
 
+      const targetTable = tables.find((t) => String(t.id) === sTableId);
+      const effectiveName = tableName || targetTable?.name || `Mesa ${sTableId}`;
+      const isBar = Boolean(targetTable?.isBar);
+      const orderVersion = Number(targetTable?.orderVersion || 0);
+      const writeId = `write_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
       // 1. Record in-flight pending state immediately to protect against background overwrites
       pendingSyncTablesRef.current.set(sTableId, {
+        name: effectiveName,
         items,
         unprintedItems: unprintedItems || [],
         customerName,
+        status: isOccupied ? "ocupada" : "libre",
+        orderVersion,
+        writeId,
         timestamp: Date.now(),
       });
 
-      // 2. OPTIMISTIC UI UPDATE
+      // 2. Guardar la versión más reciente en la cola de escritura serializada
+      latestPendingWriteRef.current.set(sTableId, {
+        effectiveName,
+        isOccupied,
+        customerName,
+        isBar,
+        items,
+        unprintedItems,
+        targetTable,
+        orderVersion,
+        writeId,
+      });
+
+      // 3. OPTIMISTIC UI UPDATE
       setTables((prevTables) =>
         prevTables.map((t) => {
           if (String(t.id) === sTableId) {
             return {
               ...t,
+              name: effectiveName,
               status: isOccupied ? "ocupada" : "libre",
               customerName: customerName,
               assignedWaiterId: currentUser?.id,
+              assignedWaiterName: currentUser?.name || t.assignedWaiterName,
               items: items,
               unprintedItems: unprintedItems || [],
+              orderVersion,
             };
           }
           return t;
         }),
       );
 
-      // 3. Debounced clean write to Supabase (200ms)
+      // 4. Debounced write to Supabase (200ms)
       if (updateOrderDebounceTimersRef.current.has(sTableId)) {
         clearTimeout(updateOrderDebounceTimersRef.current.get(sTableId));
       }
 
-      const timerId = setTimeout(async () => {
-        try {
-          const { error: e1 } = await supabase.from("tables").upsert(
-            {
-              id: sTableId,
-              name:
-                tables.find((t) => String(t.id) === sTableId)?.name ||
-                `Mesa ${sTableId}`,
-              status: isOccupied ? "ocupada" : "libre",
-              customer_name: customerName,
-              assigned_waiter_id: currentUser?.id,
-              created_at: isOccupied ? new Date().toISOString() : null,
-            },
-            { onConflict: "id" },
-          );
-          if (e1) console.error("Error upserting table:", e1);
-
-          const { error: e2 } = await supabase
-            .from("orders")
-            .delete()
-            .eq("table_id", sTableId);
-          if (e2) console.error("Error deleting old orders:", e2);
-
-          if (isOccupied) {
-            const ordersToInsert = items.map((i) => ({
-              table_id: sTableId,
-              product_id: String(i.product.id),
-              quantity: i.quantity,
-              is_printed: unprintedItems
-                ? !unprintedItems.find(
-                    (u) => String(u.product.id) === String(i.product.id),
-                  )
-                : true,
-            }));
-            const { error: e3 } = await supabase
-              .from("orders")
-              .insert(ordersToInsert);
-            if (e3) console.error("Error inserting orders:", e3);
-          }
-        } catch (dbErr) {
-          console.error("Database sync error:", dbErr);
+      const timerId = setTimeout(() => {
+        // Solo disparar si no hay una escritura en curso para esta mesa
+        if (!inFlightWritesRef.current.has(sTableId)) {
+          performTableWrite(sTableId);
         }
       }, 200);
 
@@ -484,6 +890,18 @@ export const BarProvider = ({ children }) => {
   const clearUnprintedItems = async (tableId) => {
     try {
       const sTableId = String(tableId);
+      const table = tables.find((item) => String(item.id) === sTableId);
+      if (!table) return;
+      
+      const currentShield = pendingSyncTablesRef.current.get(sTableId);
+      if (currentShield) {
+        pendingSyncTablesRef.current.set(sTableId, {
+          ...currentShield,
+          unprintedItems: [],
+          timestamp: Date.now(),
+        });
+      }
+
       // OPTIMISTIC UI UPDATE
       setTables((prevTables) =>
         prevTables.map((t) => {
@@ -493,10 +911,9 @@ export const BarProvider = ({ children }) => {
           return t;
         }),
       );
-      await supabase
-        .from("orders")
-        .update({ is_printed: true })
-        .eq("table_id", sTableId);
+      // Printing changes the order snapshot too; save it through the same
+      // versioned transaction instead of issuing an independent row update.
+      updateTableOrder(sTableId, table.items, table.customerName, [], table.name);
     } catch (err) {
       console.error("Error clearing unprinted items:", err);
     }
@@ -505,6 +922,17 @@ export const BarProvider = ({ children }) => {
   const addBarAccount = async (customerName) => {
     try {
       const newBarId = `barra_${Date.now()}`;
+      const clientName = customerName && customerName.trim() ? customerName.trim() : "Cliente Barra";
+
+      pendingSyncTablesRef.current.set(newBarId, {
+        name: "Barra",
+        items: [],
+        unprintedItems: [],
+        customerName: clientName,
+        status: "ocupada",
+        orderVersion: 0,
+        timestamp: Date.now(),
+      });
 
       // OPTIMISTIC UI UPDATE
       setTables((prev) => [
@@ -513,10 +941,12 @@ export const BarProvider = ({ children }) => {
           id: newBarId,
           name: "Barra",
           status: "ocupada",
-          customerName: customerName,
+          customerName: clientName,
           assignedWaiterId: currentUser?.id,
+          assignedWaiterName: currentUser?.name,
           createdAt: new Date().toISOString(),
           isBar: true,
+          orderVersion: 0,
           items: [],
           unprintedItems: [],
         },
@@ -527,66 +957,99 @@ export const BarProvider = ({ children }) => {
         name: "Barra",
         status: "ocupada",
         is_bar_account: true,
-        customer_name: customerName,
+        customer_name: clientName,
         assigned_waiter_id: currentUser?.id,
         created_at: new Date().toISOString(),
       });
       if (error) {
-        console.error("Error creating bar account:", error);
-        window.alert("Error creando cuenta en barra: " + error.message);
+        if (!navigator.onLine || error.message?.includes("Failed to fetch")) {
+          console.warn("📵 Creación de cuenta barra en modo offline. Se sincronizará al agregar productos.");
+        } else {
+          console.error("Error creating bar account:", error);
+          window.alert("Error creando cuenta en barra: " + error.message);
+        }
       }
       return newBarId;
     } catch (err) {
-      window.alert("Crash al crear cuenta en barra: " + err.message);
+      if (!navigator.onLine || err.message?.includes("Failed to fetch")) {
+        console.warn("📵 Crash offline ignorado al crear barra.");
+      } else {
+        window.alert("Crash al crear cuenta en barra: " + err.message);
+      }
     }
   };
-  // Función para crear una nueva mesa consecutiva (Mesa 11, Mesa 12, etc.)
-  const addNewTable = async () => {
+
+  // Función para abrir una mesa con número de mesa y cliente dinámicos
+  const openTable = async ({ tableNumber, customerName }) => {
     try {
-      // 1. Consultar a Supabase todas las mesas existentes para encontrar el número más alto
-      const { data: allTables } = await supabase.from('tables').select('id, name, is_bar_account');
+      const cleanInput = String(tableNumber || '').trim();
+      const tableName = cleanInput.toLowerCase().startsWith('mesa') || isNaN(cleanInput)
+        ? cleanInput
+        : `Mesa ${cleanInput}`;
       
-      let maxNumber = 10;
-      if (allTables && allTables.length > 0) {
-        allTables.forEach(t => {
-          if (!t.is_bar_account) {
-            const num = parseInt(t.id, 10);
-            if (!isNaN(num) && num > maxNumber) {
-              maxNumber = num;
-            }
-          }
-        });
-      }
+      const newTableId = `mesa_${Date.now()}`;
+      const clientName = customerName ? customerName.trim() : "";
 
-      const nextNumber = maxNumber + 1;
-      const nextId = String(nextNumber);
-      const tableName = `Mesa ${nextNumber}`;
+      pendingSyncTablesRef.current.set(newTableId, {
+        name: tableName || "Mesa",
+        items: [],
+        unprintedItems: [],
+        customerName: clientName,
+        status: "ocupada",
+        orderVersion: 0,
+        timestamp: Date.now(),
+      });
 
-      // 2. Inserta la nueva mesa en Supabase
+      const newTableObj = {
+        id: newTableId,
+        name: tableName || "Mesa",
+        status: "ocupada",
+        customerName: clientName,
+        assignedWaiterId: currentUser?.id,
+        assignedWaiterName: currentUser?.name,
+        createdAt: new Date().toISOString(),
+        isBar: false,
+        orderVersion: 0,
+        items: [],
+        unprintedItems: [],
+      };
+
+      // OPTIMISTIC UI UPDATE
+      setTables((prev) => [...prev, newTableObj]);
+
       const { error } = await supabase.from("tables").insert({
-        id: nextId,
-        name: tableName,
-        status: "libre",
+        id: newTableId,
+        name: tableName || "Mesa",
+        status: "ocupada",
         is_bar_account: false,
+        customer_name: clientName,
+        assigned_waiter_id: currentUser?.id,
         created_at: new Date().toISOString(),
       });
 
       if (error) {
-        console.error("Error creando mesa:", error);
-        alert("No se pudo crear la mesa: " + error.message);
-        return null;
+        if (!navigator.onLine || error.message?.includes("Failed to fetch")) {
+          console.warn("📵 Creación de mesa offline. Se sincronizará al agregar productos.");
+        } else {
+          console.error("Error creating table in Supabase:", error);
+        }
       }
-
-      // 3. Sincroniza los datos
-      await fetchData(true);
-      return nextId;
+      return newTableId;
     } catch (err) {
-      console.error("Crash creando mesa:", err);
+      console.error("Crash al abrir mesa:", err);
       return null;
     }
   };
 
-  // Función para eliminar mesas extras creadas dinámicamente
+  const addNewTable = async () => {
+    // Compatibilidad: abre una mesa solicitando los datos
+    const num = prompt("Ingresa el número de mesa:");
+    if (!num) return null;
+    const client = prompt("Ingresa el nombre del cliente (opcional):") || "";
+    return await openTable({ tableNumber: num, customerName: client });
+  };
+
+  // Función para eliminar mesas creadas dinámicamente
   const deleteTable = async (tableId) => {
     try {
       const sTableId = String(tableId);
@@ -598,15 +1061,33 @@ export const BarProvider = ({ children }) => {
         return;
       }
       setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+
+      // Proteger que no vuelva a aparecer en el próximo fetchData
+      pendingSyncTablesRef.current.set(sTableId, {
+        isDeleted: true,
+        timestamp: Date.now(),
+      });
+
       await fetchData(true);
     } catch (err) {
-      console.error("Error al eliminar mesa extra:", err);
+      console.error("Error al eliminar mesa:", err);
       alert("Error al eliminar la mesa: " + err.message);
     }
   };
 
   const sendOrderToCashier = async (tableId, customerName) => {
     const sTableId = String(tableId);
+
+    const currentShield = pendingSyncTablesRef.current.get(sTableId);
+    if (currentShield) {
+      pendingSyncTablesRef.current.set(sTableId, {
+        ...currentShield,
+        status: "pendiente_pago",
+        customerName,
+        timestamp: Date.now(),
+      });
+    }
+
     // OPTIMISTIC UI
     setTables((prev) =>
       prev.map((t) =>
@@ -627,10 +1108,90 @@ export const BarProvider = ({ children }) => {
 
   const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
     const sTableId = String(tableId);
+    
+    // IMPORTANTE: Actualizar el escudo a estado "libre" y vacío, en lugar de borrarlo.
+    // Así, cuando vuelva el internet, la mesa no parpadeará como "ocupada" mientras la cola se sincroniza.
     const table = tables.find((t) => String(t.id) === sTableId);
     if (!table || table.items.length === 0) return;
 
-    // OPTIMISTIC UI
+    pendingSyncTablesRef.current.set(sTableId, {
+      items: [],
+      unprintedItems: [],
+      customerName: "",
+      status: "libre",
+      isDeleted: true, // Las mesas cobradas desaparecen por completo de la vista activa
+      timestamp: Date.now(),
+    });
+
+    setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+
+    const baseTotal = table.items.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0,
+    );
+    const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
+    const invoiceId = `FAC-${Date.now()}`;
+
+    // Calcular deducciones de stock (promociones y productos individuales)
+    const stockDeductions = [];
+    for (const item of table.items) {
+      if (item.product.category !== "comida") {
+        const prod = products.find(
+          (p) => String(p.id) === String(item.product.id)
+        ) || (INITIAL_PRODUCTS || []).find(
+          (p) => p.name?.trim().toLowerCase() === item.product.name?.trim().toLowerCase()
+        );
+
+        if (prod && prod.bundleItems && Array.isArray(prod.bundleItems) && prod.bundleItems.length > 0) {
+          for (const bundle of prod.bundleItems) {
+            const qtyToSubtract = Number(bundle.quantity || 1) * Number(item.quantity || 1);
+            stockDeductions.push({ productId: bundle.productId, quantity: qtyToSubtract });
+          }
+        } else if (prod && (prod.name?.toLowerCase().includes("cubetazo toña") || prod.name?.toLowerCase().includes("cubetazo tona"))) {
+          const tonaProd = products.find(p => p.name?.toLowerCase().includes("toña 12") || p.name?.toLowerCase().includes("tona 12"));
+          if (tonaProd) stockDeductions.push({ productId: tonaProd.id, quantity: 6 * Number(item.quantity || 1) });
+        } else if (prod && prod.name?.toLowerCase().includes("cubetazo clasica")) {
+          const clasicaProd = products.find(p => p.name?.toLowerCase().includes("clasica 12"));
+          if (clasicaProd) stockDeductions.push({ productId: clasicaProd.id, quantity: 6 * Number(item.quantity || 1) });
+        } else if (prod && (prod.name?.toLowerCase().includes("moder sabor caja") || prod.name?.toLowerCase().includes("modern sabor caja") || prod.name?.toLowerCase() === "moder caja")) {
+          const moderSaborProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("modern de sabor"));
+          if (moderSaborProd) stockDeductions.push({ productId: moderSaborProd.id, quantity: 20 * Number(item.quantity || 1) });
+        } else if (prod && prod.name?.toLowerCase().includes("moder medio")) {
+          const moderProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("cigarro modern"));
+          if (moderProd) stockDeductions.push({ productId: moderProd.id, quantity: 10 * Number(item.quantity || 1) });
+        } else if (prod && prod.name?.toLowerCase().includes("cigarro caja")) {
+          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
+          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 20 * Number(item.quantity || 1) });
+        } else if (prod && prod.name?.toLowerCase().includes("cigarro media caja")) {
+          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
+          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 10 * Number(item.quantity || 1) });
+        } else if (prod && prod.stock !== null) {
+          stockDeductions.push({ productId: prod.id, quantity: Number(item.quantity || 1) });
+        }
+      }
+    }
+
+    const invoicePayload = {
+      id: invoiceId,
+      shift_id: currentShiftId,
+      table_name: table.name,
+      customer_name: table.customerName || "Cliente",
+      waiter_name: currentUser?.name || "Mesero",
+      total,
+      payment_method: paymentMethod,
+      transaction_id: transactionId,
+      created_at: new Date().toISOString(),
+    };
+
+    const invoiceItemsPayload = table.items.map((i) => ({
+      invoice_id: invoiceId,
+      product_name: i.product.name,
+      quantity: i.quantity,
+      price_at_sale: i.product.price,
+      cost_at_sale: i.product.cost || 0,
+    }));
+
+    // OPTIMISTIC LOCAL STATE UPDATE (La pantalla no se traba jamás)
     if (table.isBar) {
       setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
     } else {
@@ -651,109 +1212,170 @@ export const BarProvider = ({ children }) => {
       );
     }
 
-    const total = table.items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0,
-    );
-    const invoiceId = `FAC-${Date.now()}`;
+    // Descontar stock localmente en React
+    if (stockDeductions.length > 0) {
+      setProducts((prev) =>
+        prev.map((p) => {
+          const deduction = stockDeductions.find((d) => String(d.productId) === String(p.id));
+          if (deduction && p.stock !== null) {
+            return { ...p, stock: Math.max(0, p.stock - deduction.quantity) };
+          }
+          return p;
+        })
+      );
+    }
 
-    // 1. Insert Invoice
-    await supabase.from("invoices").insert({
+    // Agregar factura a las facturas pagadas locales inmediatamente
+    const newLocalInvoice = {
       id: invoiceId,
-      shift_id: currentShiftId,
-      table_name: table.name,
-      customer_name: table.customerName || "Cliente",
-      waiter_name: currentUser?.name || "Mesero",
+      shiftId: currentShiftId,
+      tableName: table.name,
+      customerName: table.customerName || "Cliente",
+      waiterName: currentUser?.name || "Mesero",
       total,
-      payment_method: paymentMethod,
-      transaction_id: transactionId,
-    });
+      paymentMethod,
+      transactionId,
+      fullDate: invoicePayload.created_at,
+      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      items: table.items.map((i) => ({
+        name: i.product.name,
+        quantity: i.quantity,
+        price: Number(i.product.price),
+        cost: Number(i.product.cost || 0),
+        category: i.product.category,
+      })),
+    };
+    setPaidInvoices((prev) => [...prev, newLocalInvoice]);
 
-    // 2. Insert Invoice Items
-    const itemsToInsert = table.items.map((i) => ({
-      invoice_id: invoiceId,
-      product_name: i.product.name,
-      quantity: i.quantity,
-      price_at_sale: i.product.price,
-      cost_at_sale: i.product.cost || 0,
-    }));
-    await supabase.from("invoice_items").insert(itemsToInsert);
+    // Enviar a Supabase o Encolar en Cola Offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.warn("📵 Sin conexión: Encolando cobro de factura en cola offline...");
+      enqueueOfflineAction('CREATE_INVOICE', {
+        invoice: invoicePayload,
+        invoiceItems: invoiceItemsPayload,
+        stockDeductions,
+        tableInfo: { id: sTableId, isBar: table.isBar }
+      });
+      setPendingSyncCount(getOfflineQueue().length);
+      return;
+    }
 
-    // 3. Subtract Stock
-    for (const item of table.items) {
-      if (item.product.category !== "comida") {
-        const prod = products.find(
-          (p) => String(p.id) === String(item.product.id),
-        );
-        if (prod && prod.stock !== null) {
-          await supabase
-            .from("products")
-            .update({ stock: Math.max(0, prod.stock - item.quantity) })
-            .eq("id", prod.id);
+    try {
+      // 1. Insert Invoice
+      await supabase.from("invoices").insert(invoicePayload);
+
+      // 2. Insert Invoice Items
+      await supabase.from("invoice_items").insert(invoiceItemsPayload);
+
+      // 3. Subtract Stock
+      for (const deduct of stockDeductions) {
+        const { data: baseProd } = await supabase.from('products').select('stock').eq('id', deduct.productId).single();
+        if (baseProd && baseProd.stock !== null) {
+          const newStock = Math.max(0, baseProd.stock - deduct.quantity);
+          await supabase.from('products').update({ stock: newStock }).eq('id', deduct.productId);
         }
       }
-    }
 
-    // 4. Free table and delete orders
-    if (table.isBar) {
+      // 4. Free table and delete orders
       await supabase.from("tables").delete().eq("id", sTableId);
-    } else {
-      await supabase
-        .from("tables")
-        .update({
-          status: "libre",
-          customer_name: null,
-          assigned_waiter_id: null,
-          created_at: null,
-        })
-        .eq("id", sTableId);
+      await supabase.from("orders").delete().eq("table_id", sTableId);
+
+      fetchData(true);
+    } catch (err) {
+      console.error("Error al enviar factura a Supabase, encolando offline:", err);
+      enqueueOfflineAction('CREATE_INVOICE', {
+        invoice: invoicePayload,
+        invoiceItems: invoiceItemsPayload,
+        stockDeductions,
+        tableInfo: { id: sTableId, isBar: Boolean(table?.isBar) }
+      });
+      setPendingSyncCount(getOfflineQueue().length);
     }
-    await supabase.from("orders").delete().eq("table_id", sTableId);
   };
 
   const closeShift = async () => {
-    if (!currentShiftId) return;
+    if (!currentShiftId && paidInvoices.length === 0) return;
     const shiftTotal = paidInvoices.reduce((sum, inv) => sum + inv.total, 0);
+    const closeTimestamp = new Date().toISOString();
 
-    await supabase
-      .from("shifts")
-      .update({
-        closed_at: new Date().toISOString(),
-        closed_by: currentUser?.id,
-        total_real: shiftTotal,
-        total_expected: shiftTotal,
-      })
-      .eq("id", currentShiftId);
+    try {
+      // 1. Cerrar el turno actual
+      if (currentShiftId) {
+        await supabase
+          .from("shifts")
+          .update({
+            closed_at: closeTimestamp,
+            closed_by: currentUser?.id,
+            total_real: shiftTotal,
+            total_expected: shiftTotal,
+          })
+          .eq("id", currentShiftId);
+      }
 
-    // Open new shift
-    const { data: newShift } = await supabase
-      .from("shifts")
-      .insert({
-        opened_by: currentUser?.id,
-      })
-      .select()
-      .single();
+      // 2. Cerrar preventivamente cualquier otro turno huérfano que haya quedado sin cerrar
+      await supabase
+        .from("shifts")
+        .update({
+          closed_at: closeTimestamp,
+          closed_by: currentUser?.id,
+          total_real: 0,
+          total_expected: 0,
+        })
+        .is("closed_at", null);
 
-    if (newShift) {
-      setCurrentShiftId(newShift.id);
-      setShiftStartTime(newShift.opened_at);
+      // 3. Reasignar cualquier factura huérfana de este corte al ID del turno cerrado
+      const orphanInvoices = paidInvoices.filter((i) => !i.shiftId || (currentShiftId && i.shiftId !== currentShiftId));
+      for (const inv of orphanInvoices) {
+        await supabase.from("invoices").update({ shift_id: currentShiftId }).eq("id", inv.id);
+      }
+
+      // 4. Abrir un único turno nuevo limpio
+      const { data: newShift } = await supabase
+        .from("shifts")
+        .insert({
+          opened_by: currentUser?.id,
+        })
+        .select()
+        .single();
+
+      if (newShift) {
+        setCurrentShiftId(newShift.id);
+        setShiftStartTime(newShift.opened_at);
+      }
+
+      setPaidInvoices([]);
+      setHistoryLoaded(false); // Invalida el caché para que al ver historial incluya el nuevo corte
+      fetchData(true);
+    } catch (closeErr) {
+      console.error("Error al cerrar turno:", closeErr);
     }
-    fetchData();
   };
 
   const cancelTableOrder = async (tableId) => {
     const sTableId = String(tableId);
-    await supabase.from("orders").delete().eq("table_id", sTableId);
-    const table = tables.find((t) => String(t.id) === sTableId);
-    if (table?.isBar) {
-      await supabase.from("tables").delete().eq("id", sTableId);
-    } else {
-      await supabase
-        .from("tables")
-        .update({ status: "libre", customer_name: null })
-        .eq("id", sTableId);
+
+    // OPTIMISTIC LOCAL UPDATE
+    setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+    pendingSyncTablesRef.current.set(sTableId, {
+      isDeleted: true,
+      timestamp: Date.now(),
+    });
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId });
+      setPendingSyncCount(getOfflineQueue().length);
+      return;
     }
-    fetchData();
+
+    try {
+      await supabase.from("orders").delete().eq("table_id", sTableId);
+      await supabase.from("tables").delete().eq("id", sTableId);
+      fetchData(true);
+    } catch (err) {
+      console.error("Error al cancelar orden en Supabase, encolando:", err);
+      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId });
+      setPendingSyncCount(getOfflineQueue().length);
+    }
   };
 
   const uploadImage = async (file) => {
@@ -781,15 +1403,30 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
-    const { error } = await supabase.from("products").insert({
-      name: newProd.name,
-      category_id: newProd.category,
-      price: newProd.price,
-      cost: newProd.cost,
-      stock: newProd.stock,
-      icon_path: imageUrl,
-    });
-    if (error) console.error("Error inserting product:", error);
+    const { data: insertedProduct, error } = await supabase
+      .from("products")
+      .insert({
+        name: newProd.name,
+        category_id: newProd.category,
+        price: newProd.price,
+        cost: newProd.cost,
+        stock: newProd.stock,
+        icon_path: imageUrl,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error inserting product:", error);
+    } else if (insertedProduct && newProd.bundleItems && newProd.bundleItems.length > 0) {
+      for (const bundle of newProd.bundleItems) {
+        await supabase.from("product_bundles").insert({
+          promotion_id: insertedProduct.id,
+          base_product_id: bundle.productId,
+          quantity_to_deduct: bundle.quantity,
+        });
+      }
+    }
 
     fetchData();
   };
@@ -811,7 +1448,22 @@ export const BarProvider = ({ children }) => {
         icon_path: imageUrl,
       })
       .eq("id", updatedProd.id);
-    if (error) console.error("Error updating product:", error);
+
+    if (error) {
+      console.error("Error updating product:", error);
+    } else {
+      // Sincronizar product_bundles si es promocion
+      await supabase.from("product_bundles").delete().eq("promotion_id", updatedProd.id);
+      if (updatedProd.bundleItems && updatedProd.bundleItems.length > 0) {
+        for (const bundle of updatedProd.bundleItems) {
+          await supabase.from("product_bundles").insert({
+            promotion_id: updatedProd.id,
+            base_product_id: bundle.productId,
+            quantity_to_deduct: bundle.quantity,
+          });
+        }
+      }
+    }
 
     fetchData();
   };
@@ -867,33 +1519,48 @@ export const BarProvider = ({ children }) => {
   };
 
   const addExpense = async (newExpense) => {
-    await supabase.from("expenses").insert({
-      shift_id: currentShiftId,
-      description: newExpense.description,
-      category: newExpense.category,
-      amount: newExpense.amount,
-      is_paid: newExpense.isPaid,
-      notification_date: newExpense.notificationDate,
-    });
+    try {
+      const { error } = await supabase.from("expenses").insert({
+        shift_id: currentShiftId || null,
+        description: newExpense.description,
+        category: newExpense.category,
+        amount: Number(newExpense.amount),
+        is_paid: newExpense.isPaid !== false,
+        notification_date: newExpense.notificationDate || null,
+      });
+      if (error) console.error("Error al registrar gasto:", error);
+    } catch (err) {
+      console.error("Fallo al registrar gasto:", err);
+    }
     fetchData();
   };
 
   const updateExpense = async (updatedExpense) => {
-    await supabase
-      .from("expenses")
-      .update({
-        description: updatedExpense.description,
-        category: updatedExpense.category,
-        amount: updatedExpense.amount,
-        is_paid: updatedExpense.isPaid,
-        notification_date: updatedExpense.notificationDate,
-      })
-      .eq("id", updatedExpense.id);
+    try {
+      const { error } = await supabase
+        .from("expenses")
+        .update({
+          description: updatedExpense.description,
+          category: updatedExpense.category,
+          amount: Number(updatedExpense.amount),
+          is_paid: updatedExpense.isPaid,
+          notification_date: updatedExpense.notificationDate || null,
+        })
+        .eq("id", updatedExpense.id);
+      if (error) console.error("Error al actualizar gasto:", error);
+    } catch (err) {
+      console.error("Fallo al actualizar gasto:", err);
+    }
     fetchData();
   };
 
   const deleteExpense = async (expenseId) => {
-    await supabase.from("expenses").delete().eq("id", expenseId);
+    try {
+      const { error } = await supabase.from("expenses").delete().eq("id", expenseId);
+      if (error) console.error("Error al eliminar gasto:", error);
+    } catch (err) {
+      console.error("Fallo al eliminar gasto:", err);
+    }
     fetchData();
   };
 
@@ -958,23 +1625,6 @@ export const BarProvider = ({ children }) => {
     setCurrentUser(null);
   };
 
-  // Check if initial shift is missing and create it
-  useEffect(() => {
-    if (!isLoading && !currentShiftId && currentUser) {
-      supabase
-        .from("shifts")
-        .insert({ opened_by: currentUser.id })
-        .select()
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setCurrentShiftId(data.id);
-            setShiftStartTime(data.opened_at);
-          }
-        });
-    }
-  }, [isLoading, currentShiftId, currentUser]);
-
   if (isLoading && !products.length) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-800 font-bold text-xl">
@@ -995,8 +1645,17 @@ export const BarProvider = ({ children }) => {
         paidInvoices,
         shiftStartTime,
         cashRegisterHistory,
+        isHistoryLoading,
+        historyLoaded,
+        loadShiftHistory,
         exchangeRate,
         expenses,
+        isOnline,
+        pendingSyncCount,
+        syncOfflineQueue: () => syncOfflineQueue(supabase, ({ synced, remaining }) => {
+          setPendingSyncCount(remaining);
+          if (synced > 0) fetchData(true);
+        }),
         updateTableOrder,
         sendOrderToCashier,
         payInvoice,
@@ -1018,6 +1677,7 @@ export const BarProvider = ({ children }) => {
         login,
         loginMesero,
         logout,
+        openTable,
         addNewTable,
         deleteTable,
         categories,

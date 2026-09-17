@@ -76,7 +76,7 @@ export const INITIAL_PRODUCTS = [
     id: 1,
     name: "TOÑA 12 ONZA",
     category: "cervezas",
-    price: 65,
+    price: 70,
     stock: 120,
     image: tona_12,
   },
@@ -84,7 +84,7 @@ export const INITIAL_PRODUCTS = [
     id: 2,
     name: "TOÑA LATA PEQUEÑA",
     category: "cervezas",
-    price: 65,
+    price: 70,
     stock: 90,
     image: tona_lata,
   },
@@ -92,7 +92,7 @@ export const INITIAL_PRODUCTS = [
     id: 3,
     name: "TOÑA LITRO",
     category: "cervezas",
-    price: 65,
+    price: 70,
     stock: 100,
     image: tona_litro,
   },
@@ -100,7 +100,7 @@ export const INITIAL_PRODUCTS = [
     id: 4,
     name: "CLASICA 12 ONZA",
     category: "cervezas",
-    price: 70,
+    price: 75,
     stock: 80,
     image: clasica_12,
   },
@@ -108,7 +108,7 @@ export const INITIAL_PRODUCTS = [
     id: 5,
     name: "CLASICA LATA PEQUEÑA",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 60,
     image: clasica_lata,
   },
@@ -116,7 +116,7 @@ export const INITIAL_PRODUCTS = [
     id: 6,
     name: "CLASICA LITRO",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 50,
     image: clasica_litro,
   },
@@ -124,7 +124,7 @@ export const INITIAL_PRODUCTS = [
     id: 7,
     name: "SPARK TRIPLE BERRY",
     category: "cervezas",
-    price: 110,
+    price: 115,
     stock: 45,
     image: spark_triple,
   },
@@ -132,7 +132,7 @@ export const INITIAL_PRODUCTS = [
     id: 8,
     name: "SPARK ROSADA",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: spark_rosada,
   },
@@ -140,7 +140,7 @@ export const INITIAL_PRODUCTS = [
     id: 9,
     name: "SPARK NAKET",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: spark_naket,
   },
@@ -148,7 +148,7 @@ export const INITIAL_PRODUCTS = [
     id: 10,
     name: "SPARK MANDARINA",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: spark_mandarina,
   },
@@ -156,7 +156,7 @@ export const INITIAL_PRODUCTS = [
     id: 11,
     name: "ULTRA TOÑA",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: ultra_tona,
   },
@@ -164,7 +164,7 @@ export const INITIAL_PRODUCTS = [
     id: 12,
     name: "SOL",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: sol,
   },
@@ -172,7 +172,7 @@ export const INITIAL_PRODUCTS = [
     id: 13,
     name: "HEINEKEN ",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: heineken,  
   
@@ -181,7 +181,7 @@ export const INITIAL_PRODUCTS = [
     id: 14,
     name: "MILLER",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: miller,
      
@@ -190,7 +190,7 @@ export const INITIAL_PRODUCTS = [
     id: 15,
     name: "SMIRNOF VERDE",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image:Smirnof,
       
@@ -199,7 +199,7 @@ export const INITIAL_PRODUCTS = [
     id: 16,
     name: "SMIRNOF ROJA",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image:
       SmirnoR,
@@ -208,7 +208,7 @@ export const INITIAL_PRODUCTS = [
     id: 17,
     name: "BAMBU DAYKIRI",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image: bambu_daykiri,
     
@@ -218,7 +218,7 @@ export const INITIAL_PRODUCTS = [
     id: 18,
     name: "BAMBU PIÑA",
     category: "cervezas",
-    price: 95,
+    price: 100,
     stock: 40,
     image:
       bambu_pina,
@@ -229,7 +229,7 @@ export const INITIAL_PRODUCTS = [
     id: 19,
     name: "RESERVA LITRO ",
     category: "licores",
-    price: 130,
+    price: 135,
     stock: 30,
     image: granReserva,
   },
@@ -237,7 +237,7 @@ export const INITIAL_PRODUCTS = [
     id: 20,
     name: "RESERVA MEDIA ",
     category: "licores",
-    price: 190,
+    price: 195,
     stock: 20,
     image: reservamedia,
   },
@@ -245,7 +245,7 @@ export const INITIAL_PRODUCTS = [
     id: 21,
     name: "EXTRA LITE LITRO",
     category: "licores",
-    price: 180,
+    price: 185,
     stock: 25,
     image:
      extraLite,
@@ -254,7 +254,7 @@ export const INITIAL_PRODUCTS = [
     id: 22,
     name: "ULTRA LITRO ",
     category: "licores",
-    price: 260,
+    price: 265,
     stock: 15,
     image:
       ultralite,
@@ -263,7 +263,7 @@ export const INITIAL_PRODUCTS = [
     id: 23,
     name: "ULTRA MEDIA ",
     category: "licores",
-    price: 280,
+    price: 285,
     stock: 12,
     image:
    ultralitemedio,
@@ -272,7 +272,7 @@ export const INITIAL_PRODUCTS = [
     id: 24,
     name: "PLATA LITRO ",
     category: "licores",
-    price: 300,
+    price: 305,
     stock: 10,
     image:
      platalitro
@@ -281,7 +281,7 @@ export const INITIAL_PRODUCTS = [
     id: 25,
     name: "PLATA MEDIA",
     category: "licores",
-    price: 220,
+    price: 225,
     stock: 18,
     image:
       platamedio
@@ -293,7 +293,7 @@ export const INITIAL_PRODUCTS = [
     id: 26,
     name: "ALITAS DE 6",
     category: "comida",
-    price: 320,
+    price: 325,
     stock: null,
     image:
     alitas6
@@ -302,7 +302,7 @@ export const INITIAL_PRODUCTS = [
     id: 27,
     name: "ALITAS DE 12",
     category: "comida",
-    price: 280,
+    price: 285,
     stock: null,
     image:
       alitas12
@@ -311,7 +311,7 @@ export const INITIAL_PRODUCTS = [
     id: 28,
     name: "SALCHIPAPA",
     category: "comida",
-    price: 350,
+    price: 355,
     stock: null,
     image:
      salichipapa
@@ -320,7 +320,7 @@ export const INITIAL_PRODUCTS = [
     id: 29,
     name: "NACHOS",
     category: "comida",
-    price: 130,
+    price: 135,
     stock: null,
     image:
      nachos
@@ -329,7 +329,7 @@ export const INITIAL_PRODUCTS = [
     id: 30,
     name: "HAMBURGUESA CON PAPAS",
     category: "comida",
-    price: 190,
+    price: 195,
     stock: null,
     image:
       hamburguesapapa
@@ -338,7 +338,7 @@ export const INITIAL_PRODUCTS = [
     id: 31,
     name: "HOT DOG SIN PAPAS",
     category: "comida",
-    price: 120,
+    price: 125,
     stock: null,
     image:
       hotdog
@@ -347,7 +347,7 @@ export const INITIAL_PRODUCTS = [
     id: 32,
     name: "HOT DOG CON PAPAS",
     category: "comida",
-    price: 220,
+    price: 225,
     stock: null,
     image:
       hotdogpapa
@@ -356,7 +356,7 @@ export const INITIAL_PRODUCTS = [
     id: 33,
     name: "CONSUME DE POLLO",
     category: "comida",
-    price: 260,
+    price: 265,
     stock: null,
     image:
       consume
@@ -365,7 +365,7 @@ export const INITIAL_PRODUCTS = [
     id: 34,
     name: "TOSTONASO LOCO",
     category: "comida",
-    price: 300,
+    price: 305,
     stock: null,
     image:
       tostonaso,
@@ -376,7 +376,7 @@ export const INITIAL_PRODUCTS = [
     id: 35,
     name: "CHOVI NEGRA ",
     category: "Bebida sin alcohol",
-    price: 210,
+    price: 215,
     stock: 50,
     image:
       chubbynegra,
@@ -385,7 +385,7 @@ export const INITIAL_PRODUCTS = [
     id: 36,
     name: "CHOVI ROJA ",
     category: "Bebida sin alcohol",
-    price: 180,
+    price: 185,
     stock: 60,
     image:
       chubbyrojo,
@@ -394,7 +394,7 @@ export const INITIAL_PRODUCTS = [
     id: 37,
     name: "CHOVI NARANJA ",
     category: "Bebida sin alcohol",
-    price: 220,
+    price: 225,
     stock: 40,
     image:
      chubbynaranja,
@@ -403,7 +403,7 @@ export const INITIAL_PRODUCTS = [
     id: 38,
     name: "CHOVI FRESCA ",
     category: "Bebida sin alcohol",
-    price: 240,
+    price: 245,
     stock: 45,
     image:
      chubbyfresca
@@ -412,7 +412,7 @@ export const INITIAL_PRODUCTS = [
     id: 39,
     name: "POWER ROJO ",
     category: "Bebida sin alcohol",
-    price: 210,
+    price: 215,
     stock: 35,
     image:
       powerR
@@ -421,7 +421,7 @@ export const INITIAL_PRODUCTS = [
     id: 40,
     name: "POWER AZÚL ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 40,
     image:
      powerA
@@ -430,7 +430,7 @@ export const INITIAL_PRODUCTS = [
     id: 41,
     name: "GATORADE ROJO",
     category: "Bebida sin alcohol",
-    price: 240,
+    price: 245,
     stock: 30,
     image:
      gateroR
@@ -439,7 +439,7 @@ export const INITIAL_PRODUCTS = [
     id: 42,
     name: "GATORADE AZÚL ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
       gateroA
@@ -448,7 +448,7 @@ export const INITIAL_PRODUCTS = [
     id: 43,
     name: "LIPTON LIMON",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
      lipton
@@ -457,7 +457,7 @@ export const INITIAL_PRODUCTS = [
     id: 44,
     name: "HICT MANZANA ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
       hci
@@ -467,7 +467,7 @@ export const INITIAL_PRODUCTS = [
     id: 45,
     name: "AGUA LITRO  ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
       agualitro
@@ -476,7 +476,7 @@ export const INITIAL_PRODUCTS = [
     id: 46,
     name: "AGUA MEDIO LITRO  ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
       aguamedio
@@ -485,7 +485,7 @@ export const INITIAL_PRODUCTS = [
     id: 47,
     name: "ENSA PLASTICO  ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
      ensap
@@ -494,7 +494,7 @@ export const INITIAL_PRODUCTS = [
     id: 48,
     name: "ENSA VIDRIO ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
       ensav
@@ -503,7 +503,7 @@ export const INITIAL_PRODUCTS = [
     id: 49,
     name: "PEPSI VIDRIO ",
     category: "Bebida sin alcohol",
-    price: 250,
+    price: 255,
     stock: 25,
     image:
      pepsi
@@ -512,7 +512,7 @@ export const INITIAL_PRODUCTS = [
     id: 50,
     name: "NACHOS GRANDE",
    category: "comida",
-    price: 250,
+    price: 255,
     stock: null,
     image:
      nachosG
@@ -521,7 +521,7 @@ export const INITIAL_PRODUCTS = [
     id: 51,
     name: "CUBETAZO TOÑA",
    category: "promociones",
-    price: 250,
+    price: 255,
     stock: null,
     bundleItems: [{ productId: 1, quantity: 6 }],
     image:
@@ -531,7 +531,7 @@ export const INITIAL_PRODUCTS = [
     id: 52,
     name: "CUBETAZO clasica",
    category: "promociones",
-    price: 250,
+    price: 255,
     stock: null,
     bundleItems: [{ productId: 4, quantity: 6 }],
     image:
@@ -540,12 +540,6 @@ export const INITIAL_PRODUCTS = [
   
 ];
 
-// Generar 10 mesas iniciales
-export const INITIAL_TABLES = Array.from({ length: 10 }, (_, index) => ({
-  id: String(index + 1),
-  name: `Mesa ${index + 1}`,
-  status: "libre",
-  customerName: "",
-  items: [],
-  createdAt: null,
-}));
+// Mesas dinámicas sin numeración predefinida
+export const INITIAL_TABLES = [];
+

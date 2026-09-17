@@ -9,10 +9,13 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
   const printRef = useRef();
   const [hasPrinted, setHasPrinted] = useState(false);
 
-  const total = items.reduce(
+  const baseTotal = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0,
   );
+  const isCard = paymentDetails?.method === 'Tarjeta';
+  const cardFee = isCard ? baseTotal * 0.10 : 0;
+  const total = baseTotal + cardFee;
   const now = new Date();
   const dateStr = now.toLocaleDateString("es-NI", {
     day: "2-digit",
@@ -59,9 +62,9 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
       onClick={(e) => e.stopPropagation()}
     >
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-slate-200">
-        <div className="bg-slate-900 px-5 py-4 flex items-center justify-between">
+        <div className="bg-blue-600 px-5 py-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-2">
-            <Printer className="w-4 h-4 text-yellow-400" />
+            <Printer className="w-5 h-5 text-white" />
             <span className="text-white font-bold text-sm">
               {isFinal ? "Factura del Cliente" : "Pre-Recibo del Cliente"}
             </span>
@@ -75,9 +78,10 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             <button
               type="button"
               onClick={handleCloseBtn}
-              className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer ml-1"
+              title="Cerrar"
+              className="p-1.5 rounded-xl bg-white hover:bg-red-50 text-red-600 hover:text-red-700 transition-all cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center ml-1"
             >
-              <X className="w-4 h-4" />
+              <X className="w-7 h-7 stroke-[3px]" />
             </button>
           </div>
         </div>
@@ -91,26 +95,26 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             }}
           >
             <div style={{ textAlign: "center", marginBottom: "10px" }}>
-              <div style={{ fontSize: "18px", fontWeight: "bold" }}>
-             MONCHOS BAR
+              <div style={{ fontSize: "28px", fontWeight: "bold" }}>
+             ZORIX POS
               </div>
        
               
               <div
-                style={{ fontSize: "14px", color: "#666", marginTop: "2px" }}
+                style={{ fontSize: "16px", color: "#000000", marginTop: "2px" }}
               >
                 Sistema de Gestión de Bar
               </div>
               <div
-                style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
+                style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
               ></div>
-              <div style={{ fontSize: "14px" }}>Fecha: {dateStr}</div>
-              <div style={{ fontSize: "14px" }}>Hora: {timeStr}</div>
+              <div style={{ fontSize: "16px" }}>Fecha: {dateStr}</div>
+              <div style={{ fontSize: "16px" }}>Hora: {timeStr}</div>
             </div>
             <div
-              style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
+              style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
-            <div style={{ marginBottom: "8px", fontSize: "12px" }}>
+            <div style={{ marginBottom: "8px", fontSize: "16px" }}>
               <div
                 style={{
                   display: "flex",
@@ -147,14 +151,14 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               </div>
             </div>
             <div
-              style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
+              style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 fontSize: "16px",
-                color: "#666",
+                color: "#000000",
                 fontWeight: "bold",
                 marginBottom: "5px",
               }}
@@ -179,7 +183,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               >
                 <div style={{ flex: 1 }}>
                   <div>{item.product.name}</div>
-                  <div style={{ fontSize: "10px", color: "#777" }}>
+                  <div style={{ fontSize: "16px", color: "#000000" }}>
                     C${item.product.price.toFixed(2)} c/u
                   </div>
                 </div>
@@ -198,8 +202,35 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               </div>
             ))}
             <div
-              style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
+              style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
+            {isCard && (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "14px",
+                    marginBottom: "3px",
+                  }}
+                >
+                  <span>Subtotal:</span>
+                  <span>C${baseTotal.toFixed(2)}</span>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: "14px",
+                    marginBottom: "5px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  <span>Recargo 10% Tarjeta:</span>
+                  <span>+C${cardFee.toFixed(2)}</span>
+                </div>
+              </>
+            )}
             <div
               style={{
                 display: "flex",
@@ -218,9 +249,9 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                 display: "flex",
                 justifyContent: "space-between",
                 fontWeight: "bold",
-                fontSize: "12px",
+                fontSize: "16px",
                 marginBottom: "10px",
-                color: "#555",
+                color: "#000000",
               }}
             >
               <span>Total USD (Tasa {exchangeRate}):</span>
@@ -229,7 +260,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             
             {isFinal && paymentDetails && (
               <>
-                <div style={{ borderTop: "1px dashed #999", margin: "8px 0" }}></div>
+                <div style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}></div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", marginBottom: "3px" }}>
                   <span style={{ fontWeight: "bold" }}>Método Pago:</span>
                   <span>{paymentDetails.method}</span>
@@ -255,10 +286,10 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             )}
 
             <div
-              style={{ borderTop: "1px dashed #999", margin: "8px 0" }}
+              style={{ borderTop: "1px dashed #000000", margin: "8px 0" }}
             ></div>
             <div
-              style={{ textAlign: "center", fontSize: "13px", color: "#777" }}
+              style={{ textAlign: "center", fontSize: "12px", color: "#777" }}
             >
               <div>¡Gracias por su {isFinal ? "compra" : "visita"}!</div>
               <div style={{ marginTop: "3px" }}>
