@@ -9,7 +9,7 @@ import { OpenTableModal } from '../common/OpenTableModal';
 import { Modal } from '../common/Modal';
 
 export const ActiveOrders = () => {
-  const { tables, addBarAccount } = useBar();
+  const { tables, addBarAccount, currentRole } = useBar();
   const [selectedTable, setSelectedTable] = useState(null);
   const [orderTableToEditId, setOrderTableToEditId] = useState(null);
   const [isOpenTableModalOpen, setIsOpenTableModalOpen] = useState(false);
@@ -55,23 +55,25 @@ export const ActiveOrders = () => {
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">Supervisión, pedidos y cobro en tiempo real</p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          <button
-            onClick={handleCreateBarAccount}
-            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
-          >
-            <MdLocalBar className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Despachar Barra</span>
-          </button>
+        {currentRole !== 'cajero' && (
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleCreateBarAccount}
+              className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
+            >
+              <MdLocalBar className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Despachar Barra</span>
+            </button>
 
-          <button
-            onClick={() => setIsOpenTableModalOpen(true)}
-            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shrink-0 text-xs sm:text-sm shadow-emerald-600/20"
-          >
-            <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Despachar Mesa</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setIsOpenTableModalOpen(true)}
+              className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shrink-0 text-xs sm:text-sm shadow-emerald-600/20"
+            >
+              <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>Despachar Mesa</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Buscador de Mesas y Cuentas de Barra */}

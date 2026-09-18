@@ -17,7 +17,8 @@ const TableIcon = (props) => (
 );
 
 export const TableCard = ({ table, onClick }) => {
-  const { deleteTable } = useBar();
+  const { deleteTable, currentRole, currentUser } = useBar();
+  const isMesero = currentRole === 'mesero' || currentUser?.role === 'mesero';
   const isOccupied = table.status === 'ocupada';
   const isPendingPayment = table.status === 'pendiente_pago';
   const isBar = table.isBar;
@@ -58,18 +59,20 @@ export const TableCard = ({ table, onClick }) => {
           <span className="font-sans text-lg font-black tracking-tight text-white">{table.name}</span>
         </div>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm(`¿Deseas cerrar o eliminar la ${table.name}?`)) {
-              deleteTable(table.id);
-            }
-          }}
-          title="Eliminar o cancelar mesa"
-          className="text-slate-400 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-all cursor-pointer active:scale-90"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {!isMesero && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`¿Deseas cerrar o eliminar la ${table.name}?`)) {
+                deleteTable(table.id);
+              }
+            }}
+            title="Eliminar o cancelar mesa"
+            className="text-slate-400 hover:text-red-400 p-2 rounded-xl hover:bg-red-500/10 transition-all cursor-pointer active:scale-90"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="my-3 flex flex-col items-center gap-1.5">

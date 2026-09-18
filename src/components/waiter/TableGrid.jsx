@@ -10,7 +10,7 @@ import { MdLocalBar, MdTableRestaurant } from "react-icons/md";
 import { WaiterHeader } from './WaiterHeader';
 
 export const TableGrid = () => {
-  const { tables, addBarAccount } = useBar();
+  const { tables, addBarAccount, currentRole } = useBar();
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [isOpenTableModalOpen, setIsOpenTableModalOpen] = useState(false);
   const selectedTable = tables.find(t => String(t.id) === String(selectedTableId));
@@ -57,31 +57,33 @@ export const TableGrid = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={async () => {
-                  const customerName = prompt("Ingresa el nombre del cliente en barra:");
-                  if (customerName) {
-                    const newId = await addBarAccount(customerName);
-                    if (newId) {
-                      setSelectedTableId(newId);
+            {currentRole !== 'cajero' && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    const customerName = prompt("Ingresa el nombre del cliente en barra:");
+                    if (customerName) {
+                      const newId = await addBarAccount(customerName);
+                      if (newId) {
+                        setSelectedTableId(newId);
+                      }
                     }
-                  }
-                }}
-                className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 px-3.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0 text-xs sm:text-sm"
-              >
-                <span className="text-base leading-none font-black">+</span>
-                <span>Barra</span>
-              </button>
-              
-              <button
-                onClick={() => setIsOpenTableModalOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0 text-xs sm:text-sm shadow-emerald-600/20"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Abrir Mesa</span>
-              </button>
-            </div>
+                  }}
+                  className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 px-3.5 rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0 text-xs sm:text-sm"
+                >
+                  <span className="text-base leading-none font-black">+</span>
+                  <span>Barra</span>
+                </button>
+                
+                <button
+                  onClick={() => setIsOpenTableModalOpen(true)}
+                  className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer shrink-0 text-xs sm:text-sm shadow-emerald-600/20"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Abrir Mesa</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -95,30 +97,32 @@ export const TableGrid = () => {
           <p className="text-slate-400 text-sm max-w-md mb-6">
             Abre una nueva mesa asignando el número de mesa y el cliente para comenzar a tomar pedidos.
           </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setIsOpenTableModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-2 text-sm shadow-emerald-600/20"
-            >
-              <PlusCircle className="w-5 h-5" />
-              <span>Abrir Nueva Mesa</span>
-            </button>
-            <button
-              onClick={async () => {
-                const customerName = prompt("Ingresa el nombre del cliente en barra:");
-                if (customerName) {
-                  const newId = await addBarAccount(customerName);
-                  if (newId) {
-                    setSelectedTableId(newId);
+          {currentRole !== 'cajero' && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsOpenTableModalOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-2 text-sm shadow-emerald-600/20"
+              >
+                <PlusCircle className="w-5 h-5" />
+                <span>Abrir Nueva Mesa</span>
+              </button>
+              <button
+                onClick={async () => {
+                  const customerName = prompt("Ingresa el nombre del cliente en barra:");
+                  if (customerName) {
+                    const newId = await addBarAccount(customerName);
+                    if (newId) {
+                      setSelectedTableId(newId);
+                    }
                   }
-                }
-              }}
-              className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-2 text-sm"
-            >
-              <MdLocalBar className="w-5 h-5" />
-              <span>Cuenta en Barra</span>
-            </button>
-          </div>
+                }}
+                className="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-2 text-sm"
+              >
+                <MdLocalBar className="w-5 h-5" />
+                <span>Cuenta en Barra</span>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">

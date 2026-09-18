@@ -815,10 +815,25 @@ export const BarProvider = ({ children }) => {
     tableName = null,
   ) => {
     try {
-      const isOccupied = items.length > 0;
       const sTableId = String(tableId);
-
       const targetTable = tables.find((t) => String(t.id) === sTableId);
+
+      // GUARDIA DE SEGURIDAD POR ROL: El rol Mesero no puede eliminar productos ni disminuir cantidades
+      const isMesero = currentRole === "mesero" || currentUser?.role === "mesero";
+      if (isMesero && targetTable?.items && targetTable.items.length > 0) {
+        for (const origItem of targetTable.items) {
+          const origProdId = String(origItem.product?.id || origItem.product);
+          const newItem = items.find(
+            (i) => String(i.product?.id || i.product) === origProdId
+          );
+          if (!newItem || newItem.quantity < origItem.quantity) {
+            alert("No tienes permiso para anular productos ni disminuir cantidades. Esta acción requiere autorización de un Cajero o Administrador.");
+            return;
+          }
+        }
+      }
+
+      const isOccupied = items.length > 0;
       const effectiveName = tableName || targetTable?.name || `Mesa ${sTableId}`;
       const isBar = Boolean(targetTable?.isBar);
       const orderVersion = Number(targetTable?.orderVersion || 0);
@@ -920,6 +935,10 @@ export const BarProvider = ({ children }) => {
   };
 
   const addBarAccount = async (customerName) => {
+    if (currentRole === "cajero" || currentUser?.role === "cajero") {
+      alert("El rol Cajero no tiene permiso para abrir cuentas en barra.");
+      return null;
+    }
     try {
       const newBarId = `barra_${Date.now()}`;
       const clientName = customerName && customerName.trim() ? customerName.trim() : "Cliente Barra";
@@ -981,6 +1000,10 @@ export const BarProvider = ({ children }) => {
 
   // Función para abrir una mesa con número de mesa y cliente dinámicos
   const openTable = async ({ tableNumber, customerName }) => {
+    if (currentRole === "cajero" || currentUser?.role === "cajero") {
+      alert("El rol Cajero no tiene permiso para abrir nuevas mesas.");
+      return null;
+    }
     try {
       const cleanInput = String(tableNumber || '').trim();
       const tableName = cleanInput.toLowerCase().startsWith('mesa') || isNaN(cleanInput)
@@ -1042,6 +1065,10 @@ export const BarProvider = ({ children }) => {
   };
 
   const addNewTable = async () => {
+    if (currentRole === "cajero" || currentUser?.role === "cajero") {
+      alert("El rol Cajero no tiene permiso para abrir nuevas mesas.");
+      return null;
+    }
     // Compatibilidad: abre una mesa solicitando los datos
     const num = prompt("Ingresa el número de mesa:");
     if (!num) return null;
@@ -1051,6 +1078,10 @@ export const BarProvider = ({ children }) => {
 
   // Función para eliminar mesas creadas dinámicamente
   const deleteTable = async (tableId) => {
+    if (currentRole === "mesero" || currentUser?.role === "mesero") {
+      alert("El rol Mesero no tiene permiso para cancelar o eliminar mesas.");
+      return;
+    }
     try {
       const sTableId = String(tableId);
       await supabase.from("orders").delete().eq("table_id", sTableId);
@@ -1107,6 +1138,10 @@ export const BarProvider = ({ children }) => {
   };
 
   const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
+    if (currentRole === "mesero" || currentUser?.role === "mesero") {
+      alert("El rol Mesero no tiene permiso para cobrar facturas.");
+      return;
+    }
     const sTableId = String(tableId);
     
     // IMPORTANTE: Actualizar el escudo a estado "libre" y vacío, en lugar de borrarlo.
@@ -1352,6 +1387,10 @@ export const BarProvider = ({ children }) => {
   };
 
   const cancelTableOrder = async (tableId) => {
+    if (currentRole === "mesero" || currentUser?.role === "mesero") {
+      alert("El rol Mesero no tiene permiso para cancelar o eliminar mesas.");
+      return;
+    }
     const sTableId = String(tableId);
 
     // OPTIMISTIC LOCAL UPDATE

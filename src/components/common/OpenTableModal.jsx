@@ -4,7 +4,7 @@ import { User, X, PlusCircle } from "lucide-react";
 import { useBar } from "../../context/BarContext";
 
 export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
-  const { tables, openTable } = useBar();
+  const { tables, openTable, currentRole } = useBar();
   const [tableNumber, setTableNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -23,7 +23,7 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || currentRole === 'cajero') return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -25,6 +25,7 @@ export const OrderModal = ({ table, onClose }) => {
     clearUnprintedItems,
     deleteTable,
     currentUser,
+    currentRole,
     exchangeRate,
   } = useBar();
   const [selectedCategory, setSelectedCategory] = useState("cervezas");
@@ -39,6 +40,8 @@ export const OrderModal = ({ table, onClose }) => {
   const [errorMsg, setErrorMsg] = useState("");
   const [search, SetSearch] = useState("");
   const [mobileView, setMobileView] = useState("catalog"); // "catalog" | "order"
+
+  const isMesero = currentRole === "mesero" || currentUser?.role === "mesero";
 
   // Sincronizar estado local al cambiar de mesa seleccionada
   useEffect(() => {
@@ -95,6 +98,20 @@ export const OrderModal = ({ table, onClose }) => {
 
   // Reducir o eliminar cantidad de forma atómica
   const handleQuantity = (productId, delta) => {
+    if (delta < 0 && isMesero) {
+      const origItem = (table.items || []).find(
+        (i) => String(i.product?.id) === String(productId)
+      );
+      const currentItem = localItems.find(
+        (i) => String(i.product?.id) === String(productId)
+      );
+      if (origItem && currentItem && currentItem.quantity <= origItem.quantity) {
+        setErrorMsg("Un mesero no puede anular productos ni reducir cantidades guardadas. Solicita autorización de Cajero.");
+        setTimeout(() => setErrorMsg(""), 4000);
+        return;
+      }
+    }
+
     let nextItems = localItems
       .map((i) => {
         if (String(i.product?.id) === String(productId)) {
@@ -156,6 +173,11 @@ export const OrderModal = ({ table, onClose }) => {
   };
 
   const handleClearTable = () => {
+    if (isMesero) {
+      setErrorMsg("El rol Mesero no tiene permiso para vaciar o cancelar el pedido.");
+      setTimeout(() => setErrorMsg(""), 4000);
+      return;
+    }
     if (confirm(`¿Estás seguro de cancelar el pedido de la ${tableName || table.name}?`)) {
       setLocalItems([]);
       setLocalUnprinted([]);
@@ -216,8 +238,8 @@ export const OrderModal = ({ table, onClose }) => {
                 </div>
               </div>
 
-              {/* Botón Vaciar en la cabecera original */}
-              {localItems.length > 0 && (
+              {/* Botón Vaciar en la cabecera original (solo para cajero / admin) */}
+              {!isMesero && localItems.length > 0 && (
                 <button
                   type="button"
                   onClick={handleClearTable}
@@ -265,47 +287,60 @@ export const OrderModal = ({ table, onClose }) => {
                 </p>
               </div>
             ) : (
-              localItems.map((item) => (
-                <div
-                  key={item.product?.id || Math.random()}
-                  className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col gap-1.5 shadow-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-slate-900 text-sm m-0 leading-tight">
-                      {item.product?.name || 'Producto'}
-                    </p>
-                    <p className="text-slate-900 text-sm font-bold m-0">
-                      C${((item.product?.price || 0) * item.quantity).toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-[11px] text-slate-500 font-medium">
-                      C${(item.product?.price || 0).toFixed(2)} c/u
-                    </span>
-                    <div className="flex items-center bg-slate-100 rounded-md border border-slate-300">
-                      <button
-                        onClick={() => handleQuantity(item.product.id, -1)}
-                        className="px-2 py-1 hover:bg-slate-200 rounded-l-md cursor-pointer text-slate-600 transition-colors active:bg-slate-300"
-                      >
-                        {item.quantity === 1 ? (
-                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                        ) : (
-                          <Minus className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <span className="font-bold text-slate-800 w-7 text-center text-xs">
-                        {item.quantity}
+              localItems.map((item) => {
+                const origItem = (table.items || []).find(
+                  (i) => String(i.product?.id) === String(item.product?.id)
+                );
+                const cannotReduce = isMesero && origItem && item.quantity <= origItem.quantity;
+
+                return (
+                  <div
+                    key={item.product?.id || Math.random()}
+                    className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col gap-1.5 shadow-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-slate-900 text-sm m-0 leading-tight">
+                        {item.product?.name || 'Producto'}
+                      </p>
+                      <p className="text-slate-900 text-sm font-bold m-0">
+                        C${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        C${(item.product?.price || 0).toFixed(2)} c/u
                       </span>
-                      <button
-                        onClick={() => handleQuantity(item.product.id, 1)}
-                        className="px-2 py-1 hover:bg-slate-200 rounded-r-md cursor-pointer text-slate-600 transition-colors active:bg-slate-300"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center bg-slate-100 rounded-md border border-slate-300">
+                        <button
+                          onClick={() => handleQuantity(item.product.id, -1)}
+                          disabled={cannotReduce}
+                          title={cannotReduce ? "Se requiere rol Cajero para reducir cantidades guardadas" : "Disminuir"}
+                          className={`px-2 py-1 rounded-l-md text-slate-600 transition-colors ${
+                            cannotReduce 
+                              ? 'opacity-40 cursor-not-allowed bg-slate-200' 
+                              : 'hover:bg-slate-200 cursor-pointer active:bg-slate-300'
+                          }`}
+                        >
+                          {item.quantity === 1 ? (
+                            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          ) : (
+                            <Minus className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <span className="font-bold text-slate-800 w-7 text-center text-xs">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleQuantity(item.product.id, 1)}
+                          className="px-2 py-1 hover:bg-slate-200 rounded-r-md cursor-pointer text-slate-600 transition-colors active:bg-slate-300"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
