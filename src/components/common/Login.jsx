@@ -50,17 +50,17 @@ export const Login = () => {
 
   return (
     <>
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 font-sans ">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
       {/* Card principal del login */}
-      <div className="bg-slate-950 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-xl overflow-hidden">
         {/* Header del login */}
-        <div className="pt-10 pb-6 text-center px-8  ">
-          <div className="w-60 h-45 flex items-center justify-center mx-auto  ">
-           <img src={logo} alt="" />
+        <div className="pt-10 pb-4 text-center px-8">
+          <div className="w-56 h-40 flex items-center justify-center mx-auto">
+           <img src={logo} alt="Zorix POS" className="object-contain max-h-full" />
           </div>
         </div>
         {/*Cabezera del step */}
-        <h1 className="text-center text-2xl font-bold text-yellow-500 m-0">
+        <h1 className="text-center text-2xl font-bold text-blue-950 m-0">
           {step === 1
             ? "Selecciona tu perfil"
             : loginType === "cajero"
@@ -69,9 +69,9 @@ export const Login = () => {
             ? "Acceso Mesero"
             : "Acceso Administrador"}
         </h1>
-        <p className="text-sm text-yellow-500 mt-2 text-center">
+        <p className="text-sm text-slate-500 mt-1.5 text-center px-4 font-medium">
           {step === 1
-            ? "Elige según tu rol"
+            ? "Elige según tu rol para ingresar"
             : loginType === "admin"
             ? "Ingresa tu usuario y contraseña de administrador."
             : "Ingresa tu PIN de acceso rápido (6 dígitos)."}
@@ -79,32 +79,32 @@ export const Login = () => {
          {/* Contenido del step */}
       <div className="px-8 pb-10 mt-4">
         {step === 1 ? (
-          <div className=" space-y-3 ">
+          <div className="space-y-3">
             <button
               type="button"
               onClick={() => handleSelectprofile("admin")}
-              className="w-full mt-4  p-4 rounded-2xl text-center border-2 border-transparent bg-white hover:bg-yellow-100 shadow-2xl transition-all  gap-4 group cursor-pointer"
+              className="w-full mt-2 p-4 rounded-2xl text-center border border-slate-200 bg-slate-50 hover:bg-blue-300 hover:border-blue-400 shadow-sm transition-all cursor-pointer group"
             >
               <div>
-                <h3 className="font-bold text-slate-950 text-sm ">Administrador</h3>
+                <h3 className="font-bold text-blue-950 text-sm">Administrador</h3>
               </div>
             </button>
             <button
               type="button"
               onClick={() => handleSelectprofile("cajero")}
-              className="w-full text-center mt-2 p-4 rounded-2xl border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all  group cursor-pointer"
+              className="w-full text-center p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-blue-300 hover:border-blue-400 shadow-sm transition-all cursor-pointer group"
             >
               <div>
-                <h3 className="font-bold text-slate-950 text-sm text-center">Cajero</h3>
+                <h3 className="font-bold text-blue-950 text-sm">Cajero</h3>
               </div>
             </button>
             <button
               type="button"
               onClick={() => handleSelectprofile("mesero")}
-              className="w-full  p-4 rounded-2xl mt-2 border-2 border-transparent bg-white hover:bg-yellow-100  shadow-2xl transition-all text-center group cursor-pointer"
+              className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-blue-300 hover:border-blue-400 shadow-sm transition-all text-center cursor-pointer group"
             >
               <div>
-                <h3 className="font-bold text-slate-950 text-sm ">Mesero</h3>
+                <h3 className="font-bold text-blue-950 text-sm">Mesero</h3>
               </div>
             </button>
           </div>
@@ -125,34 +125,34 @@ export const Login = () => {
                   placeholder="••••••"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="w-full text-center tracking-[1em] text-3xl py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-800 focus:outline-none focus:border-yellow-500/30 transition-colors font-mono"
+                  className="w-full text-center tracking-[1em] text-3xl py-4 bg-slate-50 border border-slate-300 rounded-2xl text-blue-950 focus:outline-none focus:border-blue-950 transition-colors font-mono"
                   maxLength={6}
                   autoFocus
                 />
-                <label className="block text-[10px] mt-3.5 font-bold text-red-400 uppercase tracking-wider mb-3 text-center">
+                <label className="block text-[10px] mt-3.5 font-bold text-slate-500 uppercase tracking-wider mb-3 text-center">
                   PIN de Seguridad (6 dígitos)
                 </label>
               </div>
             ) : (
               <div className="space-y-4 pt-2">
                 <div>
-                  <label className="block text-xs font-bold text-yellow-500 mb-2">Usuario</label>
+                  <label className="block text-xs font-bold text-blue-950 mb-2">Usuario</label>
                   <input
                     type="text"
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-none focus:border-yellow-500/30 transition-colors font-medium"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-blue-950 text-sm focus:outline-none focus:border-blue-950 transition-colors font-medium"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-yellow-500 mb-2">Contraseña</label>
+                  <label className="block text-xs font-bold text-blue-950 mb-2">Contraseña</label>
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 text-sm focus:outline-nonefocus:border-yellow-500/30 transition-colors font-mono"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-blue-950 text-sm focus:outline-none focus:border-blue-950 transition-colors font-mono"
                   />
                 </div>
               </div>
@@ -161,13 +161,13 @@ export const Login = () => {
               <button
                 type="button"
                 onClick={() => { setStep(1); setErrorMsg(""); }}
-                className="px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm rounded-xl transition-all cursor-pointer"
+                className="px-4 py-3.5 bg-slate-100 hover:bg-blue-300 text-slate-700 hover:text-blue-950 font-bold text-sm rounded-xl transition-all cursor-pointer border border-slate-200"
               >
                 Atrás
               </button>
               <button
                 type="submit"
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer"
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer"
               >
                 <LogIn className="w-4 h-4" /> Entrar
               </button>

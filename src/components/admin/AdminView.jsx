@@ -40,7 +40,7 @@ export const AdminView = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold shrink-0 transition-all cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? 'bg-yellow-400 text-slate-950 shadow-xs'
+                  ? 'bg-blue-300 text-blue-950 shadow-xs'
                   : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80'
               }`}
             >
@@ -69,7 +69,7 @@ export const AdminView = () => {
             {/* Logo Admin */}
             <div className={`flex items-center mb-8 mt-2 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
               {!isCollapsed && (
-                <span className="bg-gradient-to-r from-yellow-900 bg-yellow-600 bg-clip-text text-transparent ml-1 font-black text-lg italic tracking-tight">
+                <span className="bg-gradient-to-r from-blue-900 via-cyan-700 to-cyan-600 bg-clip-text text-transparent ml-1 font-black text-lg italic tracking-tight">
                   Zorix Pos
                 </span>
               )}
@@ -87,8 +87,8 @@ export const AdminView = () => {
                     title={isCollapsed ? tab.label : ''}
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all w-full text-left cursor-pointer group ${
                       isActive
-                        ? 'bg-yellow-100 text-slate-900'
-                        : 'bg-transparent text-slate-500 hover:bg-yellow-100 hover:text-slate-800'
+                        ? 'bg-blue-300 text-blue-950'
+                        : 'bg-transparent text-slate-500 hover:bg-blue-300 hover:text-blue-950'
                     } ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
                   >
                     <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`} />

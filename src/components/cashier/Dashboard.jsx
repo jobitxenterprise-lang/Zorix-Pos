@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
 import { DollarSign, Receipt, AlertTriangle, CheckCircle, Printer } from 'lucide-react';
 import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
+import { CierreDeCajaModal } from './CierreDeCajaModal';
 
 export const Dashboard = () => {
   const { paidInvoices, shiftStartTime, tables, closeShift, currentUser, products, categories, currentShiftId } = useBar();
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
 
   const totalInvoicesCount = paidInvoices.length;
   const totalCash = paidInvoices.filter(i => i.paymentMethod === 'Efectivo').reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
@@ -30,12 +32,7 @@ export const Dashboard = () => {
       alert(`No puedes cerrar caja. Hay ${activeTablesCount} mesa(s) abierta(s) o pendiente(s) de pago.`);
       return;
     }
-
-    if (window.confirm('¿Estás seguro que deseas realizar el Cierre de Caja? Esto imprimirá el Corte Z completo (totales por categoría y auditoría de inventario), transferirá los datos al Administrador y pondrá la caja en C$0.00.')) {
-      handlePrintZReceipt();
-      closeShift();
-      alert('Caja cerrada con éxito. ¡Buen turno!');
-    }
+    setIsCloseModalOpen(true);
   };
 
   return (
@@ -43,24 +40,24 @@ export const Dashboard = () => {
       {/* Tarjetas de Métricas Principales (2 Columnas) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {/* Total Ventas del Día */}
-        <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-700 shadow-sm flex items-center gap-3 sm:gap-4">
-          <div className="text-yellow-500 p-2.5 sm:p-3 bg-yellow-500/10 rounded-xl">
-            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 sm:gap-4">
+          <div className="text-blue-950 p-2.5 sm:p-3 bg-blue-50 rounded-xl border border-blue-100">
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-blue-950" />
           </div>
           <div>
-            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Ventas del Turno</p>
-            <h3 className="text-xl sm:text-2xl font-black text-white m-0 mt-0.5">C${totalSales.toFixed(2)}</h3>
+            <p className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-wider m-0">Ventas del Turno</p>
+            <h3 className="text-xl sm:text-2xl font-black text-blue-950 m-0 mt-0.5">C${totalSales.toFixed(2)}</h3>
           </div>
         </div>
 
         {/* Facturas Cobradas */}
-        <div className="bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-700 shadow-sm flex items-center gap-3 sm:gap-4">
-          <div className="text-yellow-500 p-2.5 sm:p-3 bg-yellow-500/10 rounded-xl">
-            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 sm:gap-4">
+          <div className="text-blue-950 p-2.5 sm:p-3 bg-blue-50 rounded-xl border border-blue-100">
+            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-blue-950" />
           </div>
           <div>
-            <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-wider m-0">Facturas Pagadas</p>
-            <h3 className="text-xl sm:text-2xl font-black text-white m-0 mt-0.5">{totalInvoicesCount}</h3>
+            <p className="text-xs sm:text-sm font-bold text-slate-500 uppercase tracking-wider m-0">Facturas Pagadas</p>
+            <h3 className="text-xl sm:text-2xl font-black text-blue-950 m-0 mt-0.5">{totalInvoicesCount}</h3>
           </div>
         </div>
       </div>
@@ -68,16 +65,16 @@ export const Dashboard = () => {
       {/* Botón de Cierre de Caja */}
       <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-slate-800 m-0">Cierre de Caja</h3>
+          <h3 className="text-base sm:text-lg font-bold text-blue-950 m-0">Cierre de Caja</h3>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 mb-0">Imprime el ticket de corte (Z) con desglose por categoría y auditoría de inventario.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
           <button
             onClick={handlePrintZReceipt}
             disabled={totalInvoicesCount === 0}
-            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-white transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm shrink-0"
+            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold bg-slate-100 hover:bg-slate-200 border border-slate-200 active:scale-95 text-blue-950 transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm shrink-0"
           >
-            <Printer className="w-4 h-4 text-yellow-400" />
+            <Printer className="w-4 h-4 text-blue-950" />
             Imprimir Corte Z
           </button>
 
@@ -160,6 +157,11 @@ export const Dashboard = () => {
           </div>
         )}
       </div>
+
+      <CierreDeCajaModal
+        isOpen={isCloseModalOpen}
+        onClose={() => setIsCloseModalOpen(false)}
+      />
     </div>
   );
 };

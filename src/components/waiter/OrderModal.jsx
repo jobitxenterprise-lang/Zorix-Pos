@@ -24,6 +24,7 @@ export const OrderModal = ({ table, onClose }) => {
     cancelTableOrder,
     clearUnprintedItems,
     deleteTable,
+    payInvoice,
     currentUser,
     currentRole,
     exchangeRate,
@@ -172,6 +173,20 @@ export const OrderModal = ({ table, onClose }) => {
     clearUnprintedItems(table.id);
   };
 
+  const handleCheckoutFromModal = async () => {
+    if (localItems.length === 0) return;
+    const confirmed = confirm(`¿Confirmas el cobro directo de ${tableName || table.name} por un total de C$${calculateTotal().toFixed(2)}?`);
+    if (!confirmed) return;
+
+    try {
+      await payInvoice(table.id, 'Efectivo', '');
+      onClose();
+    } catch (err) {
+      console.error("Error al cobrar desde detalle:", err);
+      alert("Ocurrió un error al procesar el cobro: " + err.message);
+    }
+  };
+
   const handleClearTable = () => {
     if (isMesero) {
       setErrorMsg("El rol Mesero no tiene permiso para vaciar o cancelar el pedido.");
@@ -247,7 +262,7 @@ export const OrderModal = ({ table, onClose }) => {
                   className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-xs cursor-pointer active:scale-95"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-red-600" />
-                  <span>Vaciar</span>
+                  <span>Eliminar</span>
                 </button>
               )}
             </div>
@@ -361,17 +376,41 @@ export const OrderModal = ({ table, onClose }) => {
               </div>
             </div>
 
-            {/* Botones de Acción */}
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                disabled={localItems.length === 0}
-                onClick={() => setShowPreview(true)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20 active:scale-[0.99]"
-              >
-                <Printer className="w-4 h-4 text-white" /> Imprimir Pre-cuenta / Factura
-              </button>
-            </div>
+            {/* Botones de Acción según Rol */}
+            {isMesero ? (
+              /* Rol Mesero: Única y estrictamente Generar Comanda */
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  disabled={localItems.length === 0}
+                  onClick={() => setShowComanda(true)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20 active:scale-[0.99]"
+                >
+                  <Printer className="w-4 h-4 text-white" /> Generar Comanda
+                </button>
+              </div>
+            ) : (
+              /* Rol Cajero / Admin: 2 Botones: Imprimir Factura y Cobrar */
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={localItems.length === 0}
+                  onClick={() => setShowPreview(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99]"
+                >
+                  <Printer className="w-4 h-4 text-white" /> Imprimir Factura
+                </button>
+
+                <button
+                  type="button"
+                  disabled={localItems.length === 0}
+                  onClick={handleCheckoutFromModal}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99]"
+                >
+                  <Receipt className="w-4 h-4 text-white" /> Cobrar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -400,15 +439,15 @@ export const OrderModal = ({ table, onClose }) => {
           table={table}
           items={localItems}
           customerName={customerName}
-          onClose={handleCloseAfterPrint}
+          onClose={() => setShowPreview(false)}
         />
       )}
 
       {showComanda && (
         <ComandaPreview
           table={table}
-          items={localUnprinted}
-          waiterName={table.assignedWaiterName}
+          items={localUnprinted.length > 0 ? localUnprinted : localItems}
+          waiterName={table.assignedWaiterName || currentUser?.name}
           onClose={handleCloseComanda}
         />
       )}

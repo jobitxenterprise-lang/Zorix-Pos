@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ActiveOrders } from './ActiveOrders';
-import { LayoutDashboard, Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
+import { VentaAlDia } from './VentaAlDia';
+import { LayoutDashboard, Receipt, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CashierHeader } from './CashierHeader';
 import { useBar } from '../../context/BarContext';
 
@@ -15,6 +16,7 @@ export const CashierView = () => {
 
   const tabs = [
     { id: 'active', label: 'Pedidos Activos', icon: Receipt, badge: activeCount > 0 ? activeCount : null },
+    { id: 'quick_sale', label: 'Venta al Día', icon: ShoppingBag },
     { id: 'dashboard', label: 'Dashboard Turno', icon: LayoutDashboard },
   ];
 
@@ -33,12 +35,12 @@ export const CashierView = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? 'bg-yellow-400 text-slate-950 shadow-xs'
+                  ? 'bg-blue-300 text-blue-950 shadow-xs'
                   : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/80'
               }`}
             >
               <div className="relative flex items-center gap-1.5">
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-slate-950' : 'text-slate-500'}`} />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-950' : 'text-slate-500'}`} />
                 <span>{tab.label}</span>
                 {tab.badge && (
                   <span className="flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-extrabold text-white">
@@ -69,7 +71,7 @@ export const CashierView = () => {
             {/* Logo */}
             <div className={`flex items-center mb-8 mt-2 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
               {!isCollapsed && (
-                <span className="bg-gradient-to-r from-yellow-900 bg-yellow-600 bg-clip-text text-transparent ml-1 font-black text-lg italic tracking-tight">
+                <span className="bg-gradient-to-r from-blue-900 bg-blue-600 bg-clip-text text-transparent ml-1 font-black text-lg italic tracking-tight">
                   Zorix Pos
                 </span>
               )}
@@ -87,8 +89,8 @@ export const CashierView = () => {
                     title={isCollapsed ? tab.label : ''}
                     className={`relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all w-full text-left cursor-pointer group ${
                       isActive
-                        ? 'bg-yellow-100 text-slate-900'
-                        : 'bg-transparent text-slate-500 hover:bg-yellow-100 hover:text-slate-800'
+                        ? 'bg-blue-300 text-slate-900'
+                        : 'bg-transparent text-slate-500 hover:bg-blue-300 hover:text-slate-800'
                     } ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
                   >
                     <div className="relative">
@@ -121,6 +123,7 @@ export const CashierView = () => {
         <div className="flex-1 w-full overflow-y-auto p-3 sm:p-6 bg-slate-50">
           <div className="max-w-full lg:max-w-[1200px] mx-auto h-full pb-10">
             {activeTab === 'active' && <ActiveOrders />}
+            {activeTab === 'quick_sale' && <VentaAlDia />}
             {activeTab === 'dashboard' && <Dashboard />}
           </div>
         </div>

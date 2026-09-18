@@ -53,11 +53,11 @@ export const Inventory = () => {
             <button
               onClick={() => setSelectedCategory('all')}
               className={`flex items-center justify-between gap-2 px-3.5 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
-                selectedCategory === 'all' ? 'bg-slate-900 text-yellow-500 shadow-sm' : 'bg-white lg:bg-transparent text-slate-600 hover:bg-slate-100 border border-slate-200 lg:border-transparent'
+                selectedCategory === 'all' ? 'bg-blue-950 text-white shadow-sm' : 'bg-white lg:bg-transparent text-slate-600 hover:bg-slate-100 border border-slate-200 lg:border-transparent'
               }`}
             >
               <span>Todos</span>
-              <span className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full ${selectedCategory === 'all' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-100 text-slate-500'}`}>
+              <span className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full ${selectedCategory === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
                 {inventoryProducts.length}
               </span>
             </button>
@@ -67,11 +67,11 @@ export const Inventory = () => {
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`flex items-center justify-between gap-2 px-3.5 py-2 lg:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
-                  selectedCategory === cat.id ? 'bg-slate-900 text-yellow-500 shadow-sm' : 'bg-white lg:bg-transparent text-slate-600 hover:bg-slate-100 border border-slate-200 lg:border-transparent'
+                  selectedCategory === cat.id ? 'bg-blue-950 text-white shadow-sm' : 'bg-white lg:bg-transparent text-slate-600 hover:bg-slate-100 border border-slate-200 lg:border-transparent'
                 }`}
               >
                 <span>{cat.name}</span>
-                <span className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full ${selectedCategory === cat.id ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-full ${selectedCategory === cat.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   {categoryCounts[cat.id] || 0}
                 </span>
               </button>
@@ -85,15 +85,15 @@ export const Inventory = () => {
             const isLow = product.stock !== null && product.stock <= 20; // umbral de prueba
             
             return (
-              <div key={product.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between h-[180px]">
+              <div key={product.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between h-[180px]">
                 
                 {/* Top Section */}
                 <div className="flex justify-between items-start">
-                  <span className="bg-black text-yellow-500 text-[9px] font-extrabold uppercase px-2 py-1 rounded">
+                  <span className="bg-slate-100 border border-slate-200 text-blue-950 text-[9px] font-extrabold uppercase px-2 py-1 rounded">
                     {product.category}
                   </span>
                   {isLow && (
-                    <span className="bg-red-50 text-red-600 text-[9px] font-extrabold uppercase px-2 py-1 rounded">
+                    <span className="bg-red-50 border border-red-200 text-red-600 text-[9px] font-extrabold uppercase px-2 py-1 rounded">
                       Stock Bajo
                     </span>
                   )}
@@ -103,7 +103,7 @@ export const Inventory = () => {
                 <div className="mt-3">
                   <div className="flex justify-between items-start gap-2">
                     <h4 className="font-bold text-slate-800 text-[15px] leading-tight line-clamp-2 m-0">{product.name}</h4>
-                    <span className="font-extrabold text-yellow-500 text-[15px]">C${product.price.toFixed(2)}</span>
+                    <span className="font-extrabold text-blue-950 text-[15px]">C${product.price.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-slate-400 line-clamp-2 mt-1.5 leading-snug">
                     Producto disponible en almacén principal.
@@ -116,7 +116,7 @@ export const Inventory = () => {
                     <span className={`text-[9px] font-extrabold uppercase block mb-0.5 ${isLow ? 'text-red-600' : 'text-slate-500'}`}>
                       {isLow ? 'Crítico' : 'Disponible'}
                     </span>
-                    <span className={`text-xl font-black leading-none ${isLow ? 'text-red-600' : 'text-slate-800'}`}>
+                    <span className={`text-xl font-black leading-none ${isLow ? 'text-red-600' : 'text-blue-950'}`}>
                       {product.stock} <span className="text-[11px] font-bold">u.</span>
                     </span>
                   </div>
@@ -124,14 +124,14 @@ export const Inventory = () => {
                   {isLow ? (
                     <button
                       onClick={() => setSelectedProduct(product)}
-                      className="bg-black text-white text-[10px] font-extrabold px-4 py-2 rounded-lg cursor-pointer hover:bg-slate-800 transition-colors shadow-sm"
+                      className="bg-blue-950 text-white text-[10px] font-extrabold px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-900 transition-colors shadow-sm"
                     >
                       REABASTECER
                     </button>
                   ) : (
                     <button
                       onClick={() => setSelectedProduct(product)}
-                      className="text-black text-[11px] font-extrabold flex items-center gap-1.5  cursor-pointer"
+                      className="text-blue-950 text-[11px] font-extrabold flex items-center gap-1.5 hover:underline cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5" /> AJUSTAR
                     </button>
@@ -143,53 +143,36 @@ export const Inventory = () => {
         </div>
       </div>
 
-      {/* Modal con Formik para Ajuste de Stock */}
+      {/* Modal de Reabastecimiento / Ajuste de Stock */}
       {selectedProduct && (
         <Modal
-          isOpen={Boolean(selectedProduct)}
+          isOpen={true}
           onClose={() => setSelectedProduct(null)}
-          title={`Ajustar Stock: ${selectedProduct.name}`}
-          maxWidth="max-w-sm"
-          height="h-auto"
+          title={`Ajuste de Inventario: ${selectedProduct.name}`}
         >
           <Formik
             initialValues={{ stockToAdd: '' }}
-            validate={values => {
-              const errors = {};
-              if (values.stockToAdd === '' || isNaN(values.stockToAdd)) {
-                errors.stockToAdd = 'Debes ingresar una cantidad';
-              } else {
-                const newTotal = selectedProduct.stock + parseInt(values.stockToAdd, 10);
-                if (newTotal < 0) {
-                  errors.stockToAdd = `No puedes restar más del stock actual (Máx: -${selectedProduct.stock})`;
-                }
-              }
-              return errors;
-            }}
-            onSubmit={(values) => {
-              const newTotal = selectedProduct.stock + parseInt(values.stockToAdd, 10);
-              updateStock(selectedProduct.id, newTotal);
-              setSelectedProduct(null);
-            }}
+            validationSchema={StockSchema}
+            onSubmit={handleStockSubmit}
           >
             {({ isSubmitting, values }) => {
-              const parsedVal = parseInt(values.stockToAdd, 10) || 0;
-              const newTotal = selectedProduct.stock + parsedVal;
-              
+              const parsedVal = parseInt(values.stockToAdd, 10);
+              const newTotal = (selectedProduct.stock || 0) + (isNaN(parsedVal) ? 0 : parsedVal);
+
               return (
                 <Form className="space-y-4">
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex justify-between items-center">
-                    <span className="text-black font-semibold">Stock actual:</span>
-                    <span className="text-xl font-black text-slate-800">{selectedProduct.stock}</span>
+                    <span className="text-blue-950 font-semibold">Stock actual:</span>
+                    <span className="text-xl font-black text-blue-950">{selectedProduct.stock}</span>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-black mb-2">Cantidad a Sumar o Restar:</label>
+                    <label className="block text-sm font-bold text-blue-950 mb-2">Cantidad a Sumar o Restar:</label>
                     <Field
                       type="number"
                       name="stockToAdd"
                       placeholder="Ej: 10 (sumar) o -5 (restar)"
-                      className="w-full p-4 border-2 border-slate-300 rounded-xl text-lg text-slate-900 bg-white font-black focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 focus:outline-none transition-all placeholder:text-slate-400 placeholder:font-medium placeholder:text-sm"
+                      className="w-full p-4 border border-slate-300 rounded-xl text-lg text-blue-950 bg-white font-black focus:ring-2 focus:ring-blue-950 focus:border-blue-950 focus:outline-none transition-all placeholder:text-slate-400 placeholder:font-medium placeholder:text-sm"
                     />
                     <ErrorMessage name="stockToAdd" component="div" className="text-red-500 text-[11px] mt-1.5 font-bold" />
                   </div>
@@ -204,14 +187,14 @@ export const Inventory = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedProduct(null)}
-                      className="flex-1 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm hover:bg-slate-300 cursor-pointer transition-colors"
+                      className="flex-1 bg-slate-100 border border-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm hover:bg-slate-200 cursor-pointer transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 bg-black border-2 border-white text-yellow-500 font-black py-3 rounded-xl text-sm hover:bg-slate-800 cursor-pointer shadow-lg transition-colors"
+                      className="flex-1 bg-blue-950 text-white font-black py-3 rounded-xl text-sm hover:bg-blue-900 cursor-pointer shadow-md transition-colors"
                     >
                       Aplicar Ajuste
                     </button>

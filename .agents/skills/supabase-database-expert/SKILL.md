@@ -79,6 +79,7 @@ Representa las cuentas abiertas actualmente en el salón o barra.
   * Mesas de salón: `mesa_<timestamp>` (ej. `mesa_1789326117411`).
   * Cuentas de barra: `barra_<timestamp>` (ej. `barra_1789326048343`).
 * `name` (`text`): Nombre visual asignado (ej. `Mesa 3`, `Barra`).
+* `area` (`text`, default `'Rancho principal'`): Área o zona asignada (ej. `Rancho principal`, `Rancho 2`, `Piscina 1`, `Piscina 2`, `Piscina 3`).
 * `status` (`text`): Estado operativo: `libre`, `ocupada`, `pendiente_pago`.
   * *Regla:* Al cobrarse o cancelarse una mesa, se elimina de `tables` para mantener la tabla pequeña y de alta velocidad.
 * `customer_name` (`text`): Nombre o descripción del cliente asignado.

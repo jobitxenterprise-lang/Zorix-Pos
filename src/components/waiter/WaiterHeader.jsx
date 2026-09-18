@@ -8,15 +8,15 @@ export const WaiterHeader = () => {
   const { currentUser, logout, isOnline, pendingSyncCount, syncOfflineQueue } = useBar();
 
   return (
-    <header className="bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-20">
+    <header className="bg-white text-blue-950 shadow-sm border-b border-slate-200 sticky top-0 z-20">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         {/* Titulo del Sistema */}
         <div className="flex items-center gap-3">
-          <div className="bg-white rounded-full overflow-hidden w-10 h-10 flex items-center justify-center shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+          <div className="bg-slate-100 rounded-full overflow-hidden w-10 h-10 flex items-center justify-center border border-slate-200 shadow-sm">
             <img src={logo} alt="Zorix POS" className="w-full h-full object-cover" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-[26px] font-bold font-serif tracking-tight text-white m-0">Zorix POS</h1>
+            <h1 className="text-[26px] font-bold font-serif tracking-tight text-blue-950 m-0">Zorix POS</h1>
           </div>
         </div>
 
@@ -24,38 +24,38 @@ export const WaiterHeader = () => {
         <div className="flex items-center gap-3">
           {/* Badge de Conexión Offline / Online */}
           {!isOnline ? (
-            <div className="flex items-center gap-1.5 bg-red-950/80 border border-red-500/50 text-red-300 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
-              <WifiOff className="w-3.5 h-3.5 text-red-400" />
+            <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 px-2.5 py-1 rounded-lg text-xs font-bold animate-pulse">
+              <WifiOff className="w-3.5 h-3.5 text-red-600" />
               <span>Offline {pendingSyncCount > 0 && `(${pendingSyncCount})`}</span>
             </div>
           ) : pendingSyncCount > 0 ? (
             <button
               onClick={syncOfflineQueue}
-              className="flex items-center gap-1.5 bg-amber-950/80 border border-amber-500/50 text-amber-300 px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-amber-900 cursor-pointer transition-colors"
+              className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-950 px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-blue-100 cursor-pointer transition-colors"
               title="Click para sincronizar ahora"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+              <RefreshCw className="w-3.5 h-3.5 text-blue-900 animate-spin" />
               <span>Sincronizando ({pendingSyncCount})</span>
             </button>
           ) : (
-            <div className="hidden sm:flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <div className="hidden sm:flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-1 rounded-lg text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               <span>En Línea</span>
             </div>
           )}
 
           {currentUser && (
-            <div className="hidden sm:flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs">
-              <User className="w-3.5 h-3.5 text-yellow-500" />
-              <span className="font-bold text-slate-200">{currentUser.name}</span>
-              <span className="text-[10px] bg-amber-500 text-slate-950 font-extrabold px-1.5 py-0.5 rounded uppercase">
+            <div className="hidden sm:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
+              <User className="w-3.5 h-3.5 text-blue-950" />
+              <span className="font-bold text-blue-950">{currentUser.name}</span>
+              <span className="text-[10px] bg-blue-950 text-white font-extrabold px-1.5 py-0.5 rounded uppercase">
                 {currentUser.role}
               </span>
             </div>
           )}
           <button
             onClick={logout}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/90 hover:bg-red-600 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-sm"
             title="Cerrar Sesión"
           >
             <LogOut className="w-3.5 h-3.5" />

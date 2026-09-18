@@ -251,6 +251,7 @@ export const BarProvider = ({ children }) => {
           newTables.push({
             id: sId,
             name: dbTable.name || (dbTable.is_bar_account ? "Barra" : `Mesa ${sId}`),
+            area: dbTable.area || "Rancho principal",
             status: resolved.status,
             customerName: resolved.customerName,
             assignedWaiterId: dbTable.assigned_waiter_id,
@@ -269,6 +270,7 @@ export const BarProvider = ({ children }) => {
             newTables.push({
               id: pId,
               name: pData.name || (pId.startsWith("barra_") ? "Barra" : `Mesa ${pId}`),
+              area: pData.area || "Rancho principal",
               status: pData.status || "ocupada",
               customerName: pData.customerName || "",
               assignedWaiterId: currentUser?.id,
@@ -304,7 +306,23 @@ export const BarProvider = ({ children }) => {
 
       if (mySeq !== fetchSeqRef.current) return;
 
-      const activeShift = activeShiftsData && activeShiftsData.length > 0 ? activeShiftsData[0] : null;
+      let activeShift = activeShiftsData && activeShiftsData.length > 0 ? activeShiftsData[0] : null;
+
+      // Si no existe ningún turno activo en Supabase, auto-inicializar un turno limpio
+      if (!activeShift && typeof navigator !== 'undefined' && navigator.onLine) {
+        try {
+          const { data: createdShift } = await supabase
+            .from("shifts")
+            .insert({ opened_by: currentUser?.id || null })
+            .select()
+            .single();
+          if (createdShift) {
+            activeShift = createdShift;
+          }
+        } catch (shiftErr) {
+          console.warn("No se pudo auto-iniciar turno de caja:", shiftErr);
+        }
+      }
 
       // 2. Fetch Invoices únicamente del turno activo
       currentShiftInvoices = [];
@@ -726,6 +744,7 @@ export const BarProvider = ({ children }) => {
           p_expected_version: orderVersion,
           p_table: {
             name: effectiveName,
+            area: targetTable?.area || "Rancho principal",
             status: isOccupied ? "ocupada" : "libre",
             customer_name: customerName,
             assigned_waiter_id: currentUser?.id || "",
@@ -998,8 +1017,8 @@ export const BarProvider = ({ children }) => {
     }
   };
 
-  // Función para abrir una mesa con número de mesa y cliente dinámicos
-  const openTable = async ({ tableNumber, customerName }) => {
+  // Función para abrir una mesa con número de mesa, cliente y zona/área dinámicos
+  const openTable = async ({ tableNumber, customerName, area = "Rancho principal" }) => {
     if (currentRole === "cajero" || currentUser?.role === "cajero") {
       alert("El rol Cajero no tiene permiso para abrir nuevas mesas.");
       return null;
@@ -1012,9 +1031,11 @@ export const BarProvider = ({ children }) => {
       
       const newTableId = `mesa_${Date.now()}`;
       const clientName = customerName ? customerName.trim() : "";
+      const selectedArea = area || "Rancho principal";
 
       pendingSyncTablesRef.current.set(newTableId, {
         name: tableName || "Mesa",
+        area: selectedArea,
         items: [],
         unprintedItems: [],
         customerName: clientName,
@@ -1026,6 +1047,7 @@ export const BarProvider = ({ children }) => {
       const newTableObj = {
         id: newTableId,
         name: tableName || "Mesa",
+        area: selectedArea,
         status: "ocupada",
         customerName: clientName,
         assignedWaiterId: currentUser?.id,
@@ -1043,6 +1065,7 @@ export const BarProvider = ({ children }) => {
       const { error } = await supabase.from("tables").insert({
         id: newTableId,
         name: tableName || "Mesa",
+        area: selectedArea,
         status: "ocupada",
         is_bar_account: false,
         customer_name: clientName,
@@ -1206,9 +1229,27 @@ export const BarProvider = ({ children }) => {
       }
     }
 
+    let activeShiftId = currentShiftId;
+    if (!activeShiftId && typeof navigator !== 'undefined' && navigator.onLine) {
+      try {
+        const { data: autoShift } = await supabase
+          .from("shifts")
+          .insert({ opened_by: currentUser?.id || null })
+          .select()
+          .single();
+        if (autoShift) {
+          activeShiftId = autoShift.id;
+          setCurrentShiftId(autoShift.id);
+          setShiftStartTime(autoShift.opened_at);
+        }
+      } catch (sErr) {
+        console.warn("Fallo auto-creación de turno en payInvoice:", sErr);
+      }
+    }
+
     const invoicePayload = {
       id: invoiceId,
-      shift_id: currentShiftId,
+      shift_id: activeShiftId,
       table_name: table.name,
       customer_name: table.customerName || "Cliente",
       waiter_name: currentUser?.name || "Mesero",
@@ -1263,7 +1304,7 @@ export const BarProvider = ({ children }) => {
     // Agregar factura a las facturas pagadas locales inmediatamente
     const newLocalInvoice = {
       id: invoiceId,
-      shiftId: currentShiftId,
+      shiftId: activeShiftId,
       tableName: table.name,
       customerName: table.customerName || "Cliente",
       waiterName: currentUser?.name || "Mesero",
@@ -1328,22 +1369,205 @@ export const BarProvider = ({ children }) => {
     }
   };
 
-  const closeShift = async () => {
+  const payDirectInvoice = async ({
+    items = [],
+    customerName = "Cliente Mostrador",
+    paymentMethod = "Efectivo",
+    transactionId = "",
+  }) => {
+    if (!items || items.length === 0) return null;
+
+    const baseTotal = items.reduce(
+      (sum, item) => sum + (Number(item.product?.price || item.price || 0) * (Number(item.quantity) || 1)),
+      0
+    );
+    const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
+    const invoiceId = `FAC-${Date.now()}`;
+    const clientName = customerName && customerName.trim() ? customerName.trim() : "Cliente Mostrador";
+
+    // Calcular deducciones de stock
+    const stockDeductions = [];
+    for (const item of items) {
+      const prodObj = item.product || item;
+      if (prodObj.category !== "comida") {
+        const prod = products.find(
+          (p) => String(p.id) === String(prodObj.id)
+        ) || (INITIAL_PRODUCTS || []).find(
+          (p) => p.name?.trim().toLowerCase() === prodObj.name?.trim().toLowerCase()
+        );
+
+        const qty = Number(item.quantity || 1);
+
+        if (prod && prod.bundleItems && Array.isArray(prod.bundleItems) && prod.bundleItems.length > 0) {
+          for (const bundle of prod.bundleItems) {
+            const qtyToSubtract = Number(bundle.quantity || 1) * qty;
+            stockDeductions.push({ productId: bundle.productId, quantity: qtyToSubtract });
+          }
+        } else if (prod && (prod.name?.toLowerCase().includes("cubetazo toña") || prod.name?.toLowerCase().includes("cubetazo tona"))) {
+          const tonaProd = products.find(p => p.name?.toLowerCase().includes("toña 12") || p.name?.toLowerCase().includes("tona 12"));
+          if (tonaProd) stockDeductions.push({ productId: tonaProd.id, quantity: 6 * qty });
+        } else if (prod && prod.name?.toLowerCase().includes("cubetazo clasica")) {
+          const clasicaProd = products.find(p => p.name?.toLowerCase().includes("clasica 12"));
+          if (clasicaProd) stockDeductions.push({ productId: clasicaProd.id, quantity: 6 * qty });
+        } else if (prod && (prod.name?.toLowerCase().includes("moder sabor caja") || prod.name?.toLowerCase().includes("modern sabor caja") || prod.name?.toLowerCase() === "moder caja")) {
+          const moderSaborProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("modern de sabor"));
+          if (moderSaborProd) stockDeductions.push({ productId: moderSaborProd.id, quantity: 20 * qty });
+        } else if (prod && prod.name?.toLowerCase().includes("moder medio")) {
+          const moderProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("cigarro modern"));
+          if (moderProd) stockDeductions.push({ productId: moderProd.id, quantity: 10 * qty });
+        } else if (prod && prod.name?.toLowerCase().includes("cigarro caja")) {
+          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
+          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 20 * qty });
+        } else if (prod && prod.name?.toLowerCase().includes("cigarro media caja")) {
+          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
+          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 10 * qty });
+        } else if (prod && prod.stock !== null) {
+          stockDeductions.push({ productId: prod.id, quantity: qty });
+        }
+      }
+    }
+
+    const invoicePayload = {
+      id: invoiceId,
+      shift_id: currentShiftId,
+      table_name: "Venta al Día",
+      customer_name: clientName,
+      waiter_name: currentUser?.name || "Cajero",
+      total,
+      payment_method: paymentMethod,
+      transaction_id: transactionId,
+      created_at: new Date().toISOString(),
+    };
+
+    const invoiceItemsPayload = items.map((i) => {
+      const p = i.product || i;
+      return {
+        invoice_id: invoiceId,
+        product_name: p.name,
+        quantity: Number(i.quantity) || 1,
+        price_at_sale: Number(p.price) || 0,
+        cost_at_sale: Number(p.cost || 0),
+      };
+    });
+
+    // Descontar stock localmente en React
+    if (stockDeductions.length > 0) {
+      setProducts((prev) =>
+        prev.map((p) => {
+          const deduction = stockDeductions.find((d) => String(d.productId) === String(p.id));
+          if (deduction && p.stock !== null) {
+            return { ...p, stock: Math.max(0, p.stock - deduction.quantity) };
+          }
+          return p;
+        })
+      );
+    }
+
+    // Agregar factura a las facturas pagadas locales
+    const newLocalInvoice = {
+      id: invoiceId,
+      shiftId: currentShiftId,
+      tableName: "Venta al Día",
+      customerName: clientName,
+      waiterName: currentUser?.name || "Cajero",
+      total,
+      paymentMethod,
+      transactionId,
+      fullDate: invoicePayload.created_at,
+      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      items: items.map((i) => {
+        const p = i.product || i;
+        return {
+          name: p.name,
+          quantity: Number(i.quantity) || 1,
+          price: Number(p.price) || 0,
+          cost: Number(p.cost || 0),
+          category: p.category_id || p.category,
+        };
+      }),
+    };
+    setPaidInvoices((prev) => [...prev, newLocalInvoice]);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      enqueueOfflineAction('CREATE_INVOICE', {
+        invoice: invoicePayload,
+        invoiceItems: invoiceItemsPayload,
+        stockDeductions,
+        tableInfo: { id: `direct_${Date.now()}`, isBar: false }
+      });
+      setPendingSyncCount(getOfflineQueue().length);
+      return invoiceId;
+    }
+
+    try {
+      await supabase.from("invoices").insert(invoicePayload);
+      await supabase.from("invoice_items").insert(invoiceItemsPayload);
+
+      for (const deduct of stockDeductions) {
+        const { data: baseProd } = await supabase.from('products').select('stock').eq('id', deduct.productId).single();
+        if (baseProd && baseProd.stock !== null) {
+          const newStock = Math.max(0, baseProd.stock - deduct.quantity);
+          await supabase.from('products').update({ stock: newStock }).eq('id', deduct.productId);
+        }
+      }
+
+      fetchData(true);
+      return invoiceId;
+    } catch (err) {
+      console.error("Error al registrar venta directa en Supabase:", err);
+      enqueueOfflineAction('CREATE_INVOICE', {
+        invoice: invoicePayload,
+        invoiceItems: invoiceItemsPayload,
+        stockDeductions,
+        tableInfo: { id: `direct_${Date.now()}`, isBar: false }
+      });
+      setPendingSyncCount(getOfflineQueue().length);
+      return invoiceId;
+    }
+  };
+
+  const closeShift = async ({
+    cashCountDetails = null,
+    totalRealCounted = null,
+    notes = "",
+  } = {}) => {
     if (!currentShiftId && paidInvoices.length === 0) return;
-    const shiftTotal = paidInvoices.reduce((sum, inv) => sum + inv.total, 0);
+    const shiftTotal = paidInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+    const totalCashExpected = paidInvoices
+      .filter((inv) => inv.paymentMethod === "Efectivo")
+      .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+
+    const actualCountedCash = totalRealCounted !== null && totalRealCounted !== undefined
+      ? Number(totalRealCounted)
+      : totalCashExpected;
+
+    const cashDifference = actualCountedCash - totalCashExpected;
     const closeTimestamp = new Date().toISOString();
+
+    const updatePayload = {
+      closed_at: closeTimestamp,
+      closed_by: currentUser?.id,
+      total_expected: shiftTotal,
+      total_real: shiftTotal,
+      total_counted_cash: actualCountedCash,
+      cash_difference: cashDifference,
+    };
+
+    if (cashCountDetails) {
+      updatePayload.cash_breakdown = {
+        ...cashCountDetails,
+        notes: notes || "",
+        expectedCash: totalCashExpected,
+        difference: cashDifference,
+      };
+    }
 
     try {
       // 1. Cerrar el turno actual
       if (currentShiftId) {
         await supabase
           .from("shifts")
-          .update({
-            closed_at: closeTimestamp,
-            closed_by: currentUser?.id,
-            total_real: shiftTotal,
-            total_expected: shiftTotal,
-          })
+          .update(updatePayload)
           .eq("id", currentShiftId);
       }
 
@@ -1381,8 +1605,10 @@ export const BarProvider = ({ children }) => {
       setPaidInvoices([]);
       setHistoryLoaded(false); // Invalida el caché para que al ver historial incluya el nuevo corte
       fetchData(true);
+      return { success: true };
     } catch (closeErr) {
       console.error("Error al cerrar turno:", closeErr);
+      throw closeErr;
     }
   };
 
@@ -1682,6 +1908,7 @@ export const BarProvider = ({ children }) => {
         tables,
         products,
         paidInvoices,
+        currentShiftId,
         shiftStartTime,
         cashRegisterHistory,
         isHistoryLoading,
@@ -1698,6 +1925,7 @@ export const BarProvider = ({ children }) => {
         updateTableOrder,
         sendOrderToCashier,
         payInvoice,
+        payDirectInvoice,
         cancelTableOrder,
         clearUnprintedItems,
         addBarAccount,

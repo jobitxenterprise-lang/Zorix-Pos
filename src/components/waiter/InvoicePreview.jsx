@@ -304,7 +304,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             <button
               type="button"
               onClick={handlePrint}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
             >
               <Printer className="w-4 h-4" /> Imprimir Pre-Recibo
             </button>
@@ -317,7 +317,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               <button
                 type="button"
                 onClick={() => onClose()}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-blue-950 font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
               >
                 <CheckCircle className="w-4 h-4" /> Listo, Cerrar
               </button>

@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MdTableRestaurant } from "react-icons/md";
-import { User, X, PlusCircle } from "lucide-react";
+import { User, X, PlusCircle, Compass } from "lucide-react";
 import { useBar } from "../../context/BarContext";
+import { ZONES } from "./ZoneWizardPills";
 
-export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
-  const { tables, openTable, currentRole } = useBar();
+export const OpenTableModal = ({ isOpen, onClose, onTableCreated, defaultZoneId = "all" }) => {
+  const { openTable, currentRole } = useBar();
+  const availableZones = ZONES.filter(z => z.id !== 'all');
+  const defaultAreaName = availableZones[0]?.label || "Rancho principal";
+
   const [tableNumber, setTableNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [selectedArea, setSelectedArea] = useState(defaultAreaName);
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef(null);
@@ -15,13 +20,15 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
     if (isOpen) {
       setTableNumber("");
       setCustomerName("");
+      const matchedZone = ZONES.find(z => z.id === defaultZoneId && z.id !== 'all');
+      setSelectedArea(matchedZone ? matchedZone.label : defaultAreaName);
       setErrorMsg("");
       setIsSubmitting(false);
       setTimeout(() => {
         if (inputRef.current) inputRef.current.focus();
       }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultZoneId, defaultAreaName]);
 
   if (!isOpen || currentRole === 'cajero') return null;
 
@@ -33,25 +40,12 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
       return;
     }
 
-    // Verificar si ya existe una mesa activa con ese mismo nombre o número
-    const formattedCheck = cleanNum.toLowerCase().startsWith("mesa")
-      ? cleanNum.toLowerCase()
-      : `mesa ${cleanNum.toLowerCase()}`;
-    
-    const existingTable = tables.find(
-      (t) => !t.isBar && t.name.toLowerCase().trim() === formattedCheck
-    );
-
-    if (existingTable) {
-      setErrorMsg(`La ${existingTable.name} ya se encuentra abierta con un pedido activo.`);
-      return;
-    }
-
     try {
       setIsSubmitting(true);
       const newId = await openTable({
         tableNumber: cleanNum,
         customerName: customerName.trim(),
+        area: selectedArea,
       });
 
       if (newId) {
@@ -81,7 +75,7 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
             </div>
             <div>
               <h3 className="text-lg font-bold text-white m-0">Abrir Nueva Mesa</h3>
-              <p className="text-xs text-blue-100 m-0">Asigna el número de mesa y cliente</p>
+              <p className="text-xs text-blue-100 m-0">Asigna la zona, número de mesa y cliente</p>
             </div>
           </div>
           <button
@@ -101,6 +95,26 @@ export const OpenTableModal = ({ isOpen, onClose, onTableCreated }) => {
               {errorMsg}
             </div>
           )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+              Zona / Área del Local <span className="text-blue-600">*</span>
+            </label>
+            <div className="relative">
+              <Compass className="w-4 h-4 text-blue-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-900 text-sm font-bold focus:outline-none focus:border-blue-600 focus:bg-white transition-all shadow-xs cursor-pointer"
+              >
+                {availableZones.map((zone) => (
+                  <option key={zone.id} value={zone.label}>
+                    {zone.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">

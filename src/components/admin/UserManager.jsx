@@ -79,9 +79,9 @@ export const UserManager = () => {
         </div>
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-yellow-500 font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
         >
-          <UserPlus className="w-4 h-4 text-yellow-500" />
+          <UserPlus className="w-4 h-4 text-white" />
           Crear Nuevo Usuario
         </button>
       </div>
@@ -116,7 +116,7 @@ export const UserManager = () => {
                     <td className="p-4 text-right space-x-2">
                       <button
                         onClick={() => handleOpenEdit(user)}
-                        className="p-1.5 text-slate-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-500 hover:text-blue-950 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                         title="Editar usuario"
                       >
                         <Edit2 className="w-4 h-4" />
@@ -140,13 +140,13 @@ export const UserManager = () => {
       {/* Modal de Crear / Editar Usuario */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
-            <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 border border-slate-200">
+            <div className="bg-slate-50 p-5 text-blue-950 border-b border-slate-200 flex justify-between items-center">
               <h3 className="text-base font-bold m-0 flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-yellow-500" />
+                <UserPlus className="w-5 h-5 text-blue-950" />
                 {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
               </h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -160,35 +160,33 @@ export const UserManager = () => {
                   placeholder="Ej. Carlos Martínez"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-950"
                 />
               </div>
 
-              {formData.role === 'admin' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Nombre de Usuario (Login):</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. admin"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-mono"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Nombre de Usuario:</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. cmartinez"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-950"
+                />
+              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {formData.role === 'admin' ? 'Contraseña de Acceso:' : 'PIN de Acceso (6 dígitos):'}
+                  {editingUser ? 'Nueva Contraseña (Opcional):' : 'Contraseña:'}
                 </label>
                 <input
-                  type={formData.role === 'admin' ? 'password' : 'text'}
-                  required
-                  placeholder={formData.role === 'admin' ? 'Contraseña de acceso' : 'Ej. 123456'}
+                  type="password"
+                  required={!editingUser}
+                  placeholder={editingUser ? 'Dejar en blanco para no cambiar' : '••••••••'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-mono"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-950"
                 />
               </div>
 
@@ -197,25 +195,25 @@ export const UserManager = () => {
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-800 font-medium"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-blue-950"
                 >
-                  <option value="mesero">Mesero (Toma de Pedidos por Mesa)</option>
-                  <option value="cajero">Cajero (Cobros y Corte de Caja)</option>
-                  <option value="admin">Administrador (Acceso Total)</option>
+                  <option value="mesero">Mesero (Atención de mesas)</option>
+                  <option value="cajero">Cajero (Cobro y Caja)</option>
+                  <option value="admin">Administrador (Control Total)</option>
                 </select>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-slate-100">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition-colors cursor-pointer"
+                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-yellow-500 font-bold text-sm rounded-xl transition-colors shadow-sm cursor-pointer"
+                  className="flex-1 py-2.5 px-4 bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs rounded-xl transition-colors shadow-sm cursor-pointer"
                 >
                   {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
                 </button>

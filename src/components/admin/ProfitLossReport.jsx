@@ -392,17 +392,17 @@ export const ProfitLossReport = () => {
           <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8">
             
             {/* Header del Modal */}
-            <div className="bg-slate-900 p-6 text-white flex justify-between items-center border-b border-slate-800">
+            <div className="bg-white p-6 text-blue-950 flex justify-between items-center border-b border-slate-200">
               <div>
                
-                <h3 className="text-xl font-black m-0 mt-1 flex items-center gap-2 text-white">
-                  <Activity className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-xl font-black m-0 mt-1 flex items-center gap-2 text-blue-950">
+                  <Activity className="w-5 h-5 text-blue-950" />
                   Ingresos en Vivo (Turno Actual)
                 </h3>
               </div>
               <button
                 onClick={() => setShowLiveModal(false)}
-                className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer border border-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -536,7 +536,7 @@ export const ProfitLossReport = () => {
             <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex justify-end">
               <button
                 onClick={() => setShowLiveModal(false)}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-sm"
+                className="px-5 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-sm"
               >
                 Cerrar Monitor
               </button>

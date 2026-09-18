@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
 import { OrderCard } from './OrderCard';
-import { PaymentModal } from './PaymentModal';
 import { Receipt, PlusCircle, Search, X } from 'lucide-react';
 import { MdLocalBar, MdTableRestaurant } from "react-icons/md";
 import { OrderModal } from '../waiter/OrderModal';
 import { OpenTableModal } from '../common/OpenTableModal';
 import { Modal } from '../common/Modal';
+import { ZoneWizardPills, isTableInZone } from '../common/ZoneWizardPills';
 
 export const ActiveOrders = () => {
   const { tables, addBarAccount, currentRole } = useBar();
-  const [selectedTable, setSelectedTable] = useState(null);
   const [orderTableToEditId, setOrderTableToEditId] = useState(null);
   const [isOpenTableModalOpen, setIsOpenTableModalOpen] = useState(false);
+  const [selectedZone, setSelectedZone] = useState('all');
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -28,6 +28,9 @@ export const ActiveOrders = () => {
       .trim();
 
   const filteredTables = activeTables.filter(t => {
+    const matchesZone = isTableInZone(t, selectedZone);
+    if (!matchesZone) return false;
+
     if (!searchTerm.trim()) return true;
     const term = normalize(searchTerm);
     const matchName = normalize(t.name).includes(term);
@@ -51,15 +54,15 @@ export const ActiveOrders = () => {
     <div className="h-full flex flex-col font-sans">
       <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-800 m-0">Pedidos Activos en Vivo</h2>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">Supervisión, pedidos y cobro en tiempo real</p>
+          <h2 className="text-xl sm:text-2xl font-black text-blue-950 m-0">Pedidos Activos en Vivo</h2>
+          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">Supervisión, edición y cobro directo en tiempo real</p>
         </div>
 
         {currentRole !== 'cajero' && (
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto shrink-0">
             <button
               onClick={handleCreateBarAccount}
-              className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
+              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
             >
               <MdLocalBar className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Despachar Barra</span>
@@ -67,7 +70,7 @@ export const ActiveOrders = () => {
 
             <button
               onClick={() => setIsOpenTableModalOpen(true)}
-              className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold py-2.5 px-3.5 sm:px-4 rounded-xl shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shrink-0 text-xs sm:text-sm shadow-emerald-600/20"
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
             >
               <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Despachar Mesa</span>
@@ -78,29 +81,40 @@ export const ActiveOrders = () => {
 
       {/* Buscador de Mesas y Cuentas de Barra */}
       {activeTables.length > 0 && (
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar por mesa, barra o cliente..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+        <div className="mb-4 flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar por mesa, barra o mesero..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-9 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="text-xs font-semibold text-slate-500 flex items-center gap-2">
+              <span>Mostrando <strong>{filteredTables.length}</strong> de {activeTables.length} cuentas activas</span>
+            </div>
           </div>
 
-          <div className="text-xs font-semibold text-slate-500 flex items-center gap-2">
-            <span>Mostrando <strong>{filteredTables.length}</strong> de {activeTables.length} cuentas activas</span>
+          {/* Wizard Nav Pill de Zonas del Local (Centrado en Fondo Blanco) */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center">
+            <ZoneWizardPills
+              selectedZone={selectedZone}
+              onSelectZone={setSelectedZone}
+              tables={activeTables}
+            />
           </div>
         </div>
       )}
@@ -124,12 +138,11 @@ export const ActiveOrders = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-6 items-start pb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 items-stretch pb-10">
           {filteredTables.map(table => (
             <OrderCard 
               key={table.id} 
               table={table} 
-              onCheckout={setSelectedTable}
               onEdit={() => setOrderTableToEditId(table.id)}
             />
           ))}
@@ -142,13 +155,6 @@ export const ActiveOrders = () => {
         onClose={() => setIsOpenTableModalOpen(false)}
         onTableCreated={(newId) => setOrderTableToEditId(newId)}
       />
-
-      {selectedTable && (
-        <PaymentModal
-          table={selectedTable}
-          onClose={() => setSelectedTable(null)}
-        />
-      )}
 
       {/* Modal para editar/crear pedido */}
       {orderTableToEdit && (
@@ -168,4 +174,5 @@ export const ActiveOrders = () => {
     </div>
   );
 };
+
 
