@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useBar } from '../../context/BarContext';
-import { showAlert, showError } from '../../utils/swal';
+import { showError } from '../../utils/swal';
 import { 
   Search, 
   ShoppingBag, 
@@ -9,16 +9,11 @@ import {
   Trash2, 
   Printer, 
   CheckCircle, 
-  DollarSign, 
-  CreditCard, 
-  ArrowRight, 
-  User, 
   RotateCcw,
-  PackageCheck
 
 } from 'lucide-react';
 import { CgShoppingBag } from "react-icons/cg";
-import { MdLocalOffer, MdTableRestaurant } from 'react-icons/md';
+import { MdLocalOffer } from 'react-icons/md';
 
 
 const printComandaTicket = ({ items, customerName, cashierName }) => {
@@ -108,9 +103,6 @@ export const VentaAlDia = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [cartItems, setCartItems] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState('Efectivo');
-  const [cashGiven, setCashGiven] = useState('');
-  const [transactionId, setTransactionId] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -161,8 +153,6 @@ export const VentaAlDia = () => {
 
   const handleClearCart = () => {
     setCartItems([]);
-    setCashGiven('');
-    setTransactionId('');
     setSuccessMsg('');
   };
 
@@ -171,15 +161,7 @@ export const VentaAlDia = () => {
     return cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   }, [cartItems]);
 
-  const totalAmount = useMemo(() => {
-    return paymentMethod === 'Tarjeta' ? subtotalBase * 1.10 : subtotalBase;
-  }, [subtotalBase, paymentMethod]);
-
-  const changeAmount = useMemo(() => {
-    if (paymentMethod !== 'Efectivo' || !cashGiven) return 0;
-    const given = Number(cashGiven) || 0;
-    return Math.max(0, given - totalAmount);
-  }, [paymentMethod, cashGiven, totalAmount]);
+  const totalAmount = subtotalBase;
 
   // 4. Imprimir Comanda de Cocina/Barra
   const handlePrintComanda = () => {
@@ -199,22 +181,13 @@ export const VentaAlDia = () => {
   const handleCheckout = async () => {
     if (cartItems.length === 0) return;
 
-    if (paymentMethod === 'Efectivo' && cashGiven && Number(cashGiven) < totalAmount) {
-      showAlert({
-        title: "Monto Insuficiente",
-        text: `El monto entregado (C$${Number(cashGiven).toFixed(2)}) es menor al total a pagar (C$${totalAmount.toFixed(2)}).`,
-        icon: "warning"
-      });
-      return;
-    }
-
     try {
       setIsProcessing(true);
       const invoiceId = await payDirectInvoice({
         items: cartItems,
         customerName: 'Venta al Día',
-        paymentMethod,
-        transactionId: transactionId.trim(),
+        paymentMethod: 'Efectivo',
+        transactionId: '',
       });
 
       // Intentar imprimir factura física
@@ -225,7 +198,7 @@ export const VentaAlDia = () => {
           cashierName: currentUser?.name || 'Cajero',
           items: cartItems,
           total: totalAmount,
-          paymentMethod,
+          paymentMethod: 'Efectivo',
         });
       } catch (pErr) {
         console.warn('Fallo impresión de recibo:', pErr);
@@ -464,81 +437,10 @@ export const VentaAlDia = () => {
               )}
             </div>
 
-            {/* Selector de Forma de Pago */}
-            {cartItems.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-slate-200">
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                  Método de Pago
-                </label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {['Efectivo', 'Tarjeta', 'Transferencia'].map((method) => {
-                    const isActive = paymentMethod === method;
-                    return (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => setPaymentMethod(method)}
-                        className={`py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer border text-center ${
-                          isActive
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
-                            : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                        }`}
-                      >
-                        {method}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Campos Específicos por Método de Pago */}
-                {paymentMethod === 'Efectivo' && (
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-700">Monto Entregado (C$):</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={cashGiven}
-                        onChange={(e) => setCashGiven(e.target.value)}
-                        className="w-28 py-1.5 px-3 bg-white border border-slate-300 rounded-lg text-right font-extrabold text-slate-900 text-xs focus:outline-none focus:border-blue-600"
-                      />
-                    </div>
-                    {cashGiven && (
-                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200">
-                        <span className="font-bold text-slate-600">Cambio:</span>
-                        <span className="font-black text-emerald-600 text-sm">C${changeAmount.toFixed(2)}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {paymentMethod === 'Tarjeta' && (
-                  <div className="p-2.5 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-[11px] font-semibold">
-                    * Pagos con Tarjeta incluyen un recargo automático del 10%.
-                  </div>
-                )}
-
-                {paymentMethod === 'Transferencia' && (
-                  <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                    <input
-                      type="text"
-                      placeholder="Código de referencia / voucher..."
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                      className="w-full py-1.5 px-3 bg-white border border-slate-300 rounded-lg font-bold text-slate-900 text-xs focus:outline-none focus:border-blue-600"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Resumen Total */}
             <div className="p-4 bg-slate-900 text-white rounded-xl space-y-1 shadow-sm">
               <div className="flex justify-between items-center text-xs text-slate-300">
                 <span>Total a Cobrar:</span>
-                {paymentMethod === 'Tarjeta' && <span className="text-[10px] text-blue-300">(Inc. 10% Tarjeta)</span>}
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-2xl font-black text-emerald-400">
