@@ -153,7 +153,10 @@ export const InvoiceHistory = () => {
                                     <div className="font-semibold text-slate-800">{inv.tableName}</div>
                                     <div className="text-slate-500 text-[10px]">Cliente: {inv.customerName}</div>
                                     <div className="text-blue-900 font-bold text-[10px] flex items-center gap-1 mt-0.5">
-                                      🍹 Atendido por: {inv.waiterName || 'Mesero'}
+                                      🍹 Mesero: {inv.waiterName || 'Sin mesero'}
+                                    </div>
+                                    <div className="text-slate-600 font-medium text-[10px] flex items-center gap-1">
+                                      💳 Cajero: {inv.cashierName || closure.cashierName || 'Cajero'}
                                     </div>
                                   </td>
                                   <td className="p-3">
@@ -179,8 +182,9 @@ export const InvoiceHistory = () => {
                                     <td colSpan="5" className="px-8 py-4 border-t border-slate-200">
                                       <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider">
                                         <span>Detalle del Consumo</span>
-                                        <span className="text-blue-950 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-extrabold">
-                                          🍹 Mesero: {inv.waiterName || 'Mesero'}
+                                        <span className="text-blue-950 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-extrabold flex items-center gap-2">
+                                          <span>🍹 Mesero: {inv.waiterName || 'Sin mesero'}</span>
+                                          <span>💳 Cajero: {inv.cashierName || closure.cashierName || 'Cajero'}</span>
                                         </span>
                                       </div>
                                       <div className="space-y-2 border-l-2 border-slate-300 pl-4 ml-1">

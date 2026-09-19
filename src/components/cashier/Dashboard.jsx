@@ -154,7 +154,9 @@ export const Dashboard = () => {
                       <br />
                       <span className="text-slate-500 text-[11px]">{inv.customerName}</span>
                       <br />
-                      <span className="text-blue-900 font-bold text-[10px]">🍹 Mesero: {inv.waiterName || 'Mesero'}</span>
+                      <span className="text-blue-900 font-bold text-[10px]">🍹 Mesero: {inv.waiterName || 'Sin mesero'}</span>
+                      <br />
+                      <span className="text-slate-600 font-medium text-[10px]">💳 Cajero: {inv.cashierName || currentUser?.name || 'Cajero'}</span>
                     </td>
                     <td className="p-2.5">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${

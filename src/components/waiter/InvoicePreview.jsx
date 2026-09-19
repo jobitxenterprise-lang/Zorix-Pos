@@ -143,7 +143,17 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                 }}
               >
                 <span style={{ fontWeight: "bold" }}>Mesero:</span>
-                <span>{currentUser?.name || table.assignedWaiterName || "Mesero"}</span>
+                <span>{table.assignedWaiterName || (currentUser?.role === 'mesero' ? currentUser?.name : 'Sin mesero')}</span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "3px",
+                }}
+              >
+                <span style={{ fontWeight: "bold" }}>Cajero:</span>
+                <span>{currentUser?.role === 'cajero' || isFinal ? (currentUser?.name || "Cajero") : "En caja"}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ fontWeight: "bold" }}>{isFinal ? "Factura N°:" : "Ref.:"}</span>

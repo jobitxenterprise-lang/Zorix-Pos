@@ -648,6 +648,7 @@ export const BarProvider = ({ children }) => {
         tableName: inv.table_name,
         customerName: inv.customer_name,
         waiterName: inv.waiter_name,
+        cashierName: inv.cashier_name,
         total: Number(inv.total),
         paymentMethod: inv.payment_method,
         transactionId: inv.transaction_id,
@@ -1238,12 +1239,16 @@ export const BarProvider = ({ children }) => {
       }
     }
 
+    const actualWaiterName = table.assignedWaiterName || (currentUser?.role === 'mesero' ? currentUser?.name : 'Sin mesero');
+    const actualCashierName = currentUser?.name || 'Cajero';
+
     const invoicePayload = {
       id: invoiceId,
       shift_id: activeShiftId,
       table_name: table.name,
       customer_name: table.customerName || "Cliente",
-      waiter_name: currentUser?.name || "Mesero",
+      waiter_name: actualWaiterName,
+      cashier_name: actualCashierName,
       total,
       payment_method: paymentMethod,
       transaction_id: transactionId,
@@ -1285,7 +1290,8 @@ export const BarProvider = ({ children }) => {
       shiftId: activeShiftId,
       tableName: table.name,
       customerName: table.customerName || "Cliente",
-      waiterName: currentUser?.name || "Mesero",
+      waiterName: actualWaiterName,
+      cashierName: actualCashierName,
       total,
       paymentMethod,
       transactionId,
@@ -1357,12 +1363,15 @@ export const BarProvider = ({ children }) => {
     // Sin control de inventario: las ventas directas tampoco descuentan stock.
     const stockDeductions = [];
 
+    const actualCashierName = currentUser?.name || "Cajero";
+
     const invoicePayload = {
       id: invoiceId,
       shift_id: currentShiftId,
       table_name: "Venta al Día",
       customer_name: clientName,
-      waiter_name: currentUser?.name || "Cajero",
+      waiter_name: "Mostrador",
+      cashier_name: actualCashierName,
       total,
       payment_method: paymentMethod,
       transaction_id: transactionId,
@@ -1386,7 +1395,8 @@ export const BarProvider = ({ children }) => {
       shiftId: currentShiftId,
       tableName: "Venta al Día",
       customerName: clientName,
-      waiterName: currentUser?.name || "Cajero",
+      waiterName: "Mostrador",
+      cashierName: actualCashierName,
       total,
       paymentMethod,
       transactionId,
