@@ -126,7 +126,8 @@ export const BarProvider = ({ children }) => {
             category: p.category_id,
             price: Number(p.price),
             cost: Number(p.cost),
-            stock: p.stock !== null ? Number(p.stock) : null,
+            // Zorix POS no controla existencias: todos los productos son vendibles.
+            stock: null,
             image:
               p.icon_path && p.icon_path.startsWith("http")
                 ? p.icon_path
@@ -176,7 +177,7 @@ export const BarProvider = ({ children }) => {
                   category: rawProd.category_id || rawProd.category,
                   price: Number(rawProd.price),
                   cost: Number(rawProd.cost || 0),
-                  stock: rawProd.stock !== null ? Number(rawProd.stock) : null,
+                   stock: null,
                   image:
                     rawProd.icon_path && rawProd.icon_path.startsWith("http")
                       ? rawProd.icon_path
@@ -1216,44 +1217,8 @@ export const BarProvider = ({ children }) => {
     const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
     const invoiceId = `FAC-${Date.now()}`;
 
-    // Calcular deducciones de stock (promociones y productos individuales)
+    // Sin control de inventario: ningún cobro descuenta productos, incluidos paquetes.
     const stockDeductions = [];
-    for (const item of table.items) {
-      if (item.product.category !== "comida") {
-        const prod = products.find(
-          (p) => String(p.id) === String(item.product.id)
-        ) || (INITIAL_PRODUCTS || []).find(
-          (p) => p.name?.trim().toLowerCase() === item.product.name?.trim().toLowerCase()
-        );
-
-        if (prod && prod.bundleItems && Array.isArray(prod.bundleItems) && prod.bundleItems.length > 0) {
-          for (const bundle of prod.bundleItems) {
-            const qtyToSubtract = Number(bundle.quantity || 1) * Number(item.quantity || 1);
-            stockDeductions.push({ productId: bundle.productId, quantity: qtyToSubtract });
-          }
-        } else if (prod && (prod.name?.toLowerCase().includes("cubetazo toña") || prod.name?.toLowerCase().includes("cubetazo tona"))) {
-          const tonaProd = products.find(p => p.name?.toLowerCase().includes("toña 12") || p.name?.toLowerCase().includes("tona 12"));
-          if (tonaProd) stockDeductions.push({ productId: tonaProd.id, quantity: 6 * Number(item.quantity || 1) });
-        } else if (prod && prod.name?.toLowerCase().includes("cubetazo clasica")) {
-          const clasicaProd = products.find(p => p.name?.toLowerCase().includes("clasica 12"));
-          if (clasicaProd) stockDeductions.push({ productId: clasicaProd.id, quantity: 6 * Number(item.quantity || 1) });
-        } else if (prod && (prod.name?.toLowerCase().includes("moder sabor caja") || prod.name?.toLowerCase().includes("modern sabor caja") || prod.name?.toLowerCase() === "moder caja")) {
-          const moderSaborProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("modern de sabor"));
-          if (moderSaborProd) stockDeductions.push({ productId: moderSaborProd.id, quantity: 20 * Number(item.quantity || 1) });
-        } else if (prod && prod.name?.toLowerCase().includes("moder medio")) {
-          const moderProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("cigarro modern"));
-          if (moderProd) stockDeductions.push({ productId: moderProd.id, quantity: 10 * Number(item.quantity || 1) });
-        } else if (prod && prod.name?.toLowerCase().includes("cigarro caja")) {
-          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
-          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 20 * Number(item.quantity || 1) });
-        } else if (prod && prod.name?.toLowerCase().includes("cigarro media caja")) {
-          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
-          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 10 * Number(item.quantity || 1) });
-        } else if (prod && prod.stock !== null) {
-          stockDeductions.push({ productId: prod.id, quantity: Number(item.quantity || 1) });
-        }
-      }
-    }
 
     let activeShiftId = currentShiftId;
     if (!activeShiftId && typeof navigator !== 'undefined' && navigator.onLine) {
@@ -1314,19 +1279,6 @@ export const BarProvider = ({ children }) => {
       );
     }
 
-    // Descontar stock localmente en React
-    if (stockDeductions.length > 0) {
-      setProducts((prev) =>
-        prev.map((p) => {
-          const deduction = stockDeductions.find((d) => String(d.productId) === String(p.id));
-          if (deduction && p.stock !== null) {
-            return { ...p, stock: Math.max(0, p.stock - deduction.quantity) };
-          }
-          return p;
-        })
-      );
-    }
-
     // Agregar factura a las facturas pagadas locales inmediatamente
     const newLocalInvoice = {
       id: invoiceId,
@@ -1369,16 +1321,7 @@ export const BarProvider = ({ children }) => {
       // 2. Insert Invoice Items
       await supabase.from("invoice_items").insert(invoiceItemsPayload);
 
-      // 3. Subtract Stock
-      for (const deduct of stockDeductions) {
-        const { data: baseProd } = await supabase.from('products').select('stock').eq('id', deduct.productId).single();
-        if (baseProd && baseProd.stock !== null) {
-          const newStock = Math.max(0, baseProd.stock - deduct.quantity);
-          await supabase.from('products').update({ stock: newStock }).eq('id', deduct.productId);
-        }
-      }
-
-      // 4. Free table and delete orders
+      // 3. Free table and delete orders
       await supabase.from("tables").delete().eq("id", sTableId);
       await supabase.from("orders").delete().eq("table_id", sTableId);
 
@@ -1411,47 +1354,8 @@ export const BarProvider = ({ children }) => {
     const invoiceId = `FAC-${Date.now()}`;
     const clientName = customerName && customerName.trim() ? customerName.trim() : "Cliente Mostrador";
 
-    // Calcular deducciones de stock
+    // Sin control de inventario: las ventas directas tampoco descuentan stock.
     const stockDeductions = [];
-    for (const item of items) {
-      const prodObj = item.product || item;
-      if (prodObj.category !== "comida") {
-        const prod = products.find(
-          (p) => String(p.id) === String(prodObj.id)
-        ) || (INITIAL_PRODUCTS || []).find(
-          (p) => p.name?.trim().toLowerCase() === prodObj.name?.trim().toLowerCase()
-        );
-
-        const qty = Number(item.quantity || 1);
-
-        if (prod && prod.bundleItems && Array.isArray(prod.bundleItems) && prod.bundleItems.length > 0) {
-          for (const bundle of prod.bundleItems) {
-            const qtyToSubtract = Number(bundle.quantity || 1) * qty;
-            stockDeductions.push({ productId: bundle.productId, quantity: qtyToSubtract });
-          }
-        } else if (prod && (prod.name?.toLowerCase().includes("cubetazo toña") || prod.name?.toLowerCase().includes("cubetazo tona"))) {
-          const tonaProd = products.find(p => p.name?.toLowerCase().includes("toña 12") || p.name?.toLowerCase().includes("tona 12"));
-          if (tonaProd) stockDeductions.push({ productId: tonaProd.id, quantity: 6 * qty });
-        } else if (prod && prod.name?.toLowerCase().includes("cubetazo clasica")) {
-          const clasicaProd = products.find(p => p.name?.toLowerCase().includes("clasica 12"));
-          if (clasicaProd) stockDeductions.push({ productId: clasicaProd.id, quantity: 6 * qty });
-        } else if (prod && (prod.name?.toLowerCase().includes("moder sabor caja") || prod.name?.toLowerCase().includes("modern sabor caja") || prod.name?.toLowerCase() === "moder caja")) {
-          const moderSaborProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("modern de sabor"));
-          if (moderSaborProd) stockDeductions.push({ productId: moderSaborProd.id, quantity: 20 * qty });
-        } else if (prod && prod.name?.toLowerCase().includes("moder medio")) {
-          const moderProd = products.find(p => p.name?.toLowerCase().includes("moder de sabor") || p.name?.toLowerCase().includes("cigarro modern"));
-          if (moderProd) stockDeductions.push({ productId: moderProd.id, quantity: 10 * qty });
-        } else if (prod && prod.name?.toLowerCase().includes("cigarro caja")) {
-          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
-          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 20 * qty });
-        } else if (prod && prod.name?.toLowerCase().includes("cigarro media caja")) {
-          const cigarroProd = products.find(p => p.name?.toLowerCase().includes("cigarro unidad"));
-          if (cigarroProd) stockDeductions.push({ productId: cigarroProd.id, quantity: 10 * qty });
-        } else if (prod && prod.stock !== null) {
-          stockDeductions.push({ productId: prod.id, quantity: qty });
-        }
-      }
-    }
 
     const invoicePayload = {
       id: invoiceId,
@@ -1475,19 +1379,6 @@ export const BarProvider = ({ children }) => {
         cost_at_sale: Number(p.cost || 0),
       };
     });
-
-    // Descontar stock localmente en React
-    if (stockDeductions.length > 0) {
-      setProducts((prev) =>
-        prev.map((p) => {
-          const deduction = stockDeductions.find((d) => String(d.productId) === String(p.id));
-          if (deduction && p.stock !== null) {
-            return { ...p, stock: Math.max(0, p.stock - deduction.quantity) };
-          }
-          return p;
-        })
-      );
-    }
 
     // Agregar factura a las facturas pagadas locales
     const newLocalInvoice = {
@@ -1528,14 +1419,6 @@ export const BarProvider = ({ children }) => {
     try {
       await supabase.from("invoices").insert(invoicePayload);
       await supabase.from("invoice_items").insert(invoiceItemsPayload);
-
-      for (const deduct of stockDeductions) {
-        const { data: baseProd } = await supabase.from('products').select('stock').eq('id', deduct.productId).single();
-        if (baseProd && baseProd.stock !== null) {
-          const newStock = Math.max(0, baseProd.stock - deduct.quantity);
-          await supabase.from('products').update({ stock: newStock }).eq('id', deduct.productId);
-        }
-      }
 
       fetchData(true);
       return invoiceId;
@@ -1702,7 +1585,7 @@ export const BarProvider = ({ children }) => {
         category_id: newProd.category,
         price: newProd.price,
         cost: newProd.cost,
-        stock: newProd.stock,
+        stock: null,
         icon_path: imageUrl,
       })
       .select()
@@ -1736,7 +1619,7 @@ export const BarProvider = ({ children }) => {
         category_id: updatedProd.category,
         price: updatedProd.price,
         cost: updatedProd.cost,
-        stock: updatedProd.stock,
+        stock: null,
         icon_path: imageUrl,
       })
       .eq("id", updatedProd.id);
@@ -1765,12 +1648,8 @@ export const BarProvider = ({ children }) => {
     fetchData();
   };
 
-  const updateStock = async (productId, newStock) => {
-    await supabase
-      .from("products")
-      .update({ stock: newStock })
-      .eq("id", productId);
-    fetchData();
+  const updateStock = async () => {
+    // El POS no controla existencias; se conserva la API para compatibilidad.
   };
 
   const addUser = async (newUser) => {

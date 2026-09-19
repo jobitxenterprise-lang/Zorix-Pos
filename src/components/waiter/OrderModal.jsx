@@ -64,14 +64,6 @@ export const OrderModal = ({ table, onClose }) => {
     );
 
     if (existingIndex >= 0) {
-      if (
-        product.stock !== null &&
-        nextItems[existingIndex].quantity >= product.stock
-      ) {
-        setErrorMsg(`Stock máximo alcanzado para ${product.name}`);
-        setTimeout(() => setErrorMsg(""), 3000);
-        return;
-      }
       nextItems[existingIndex] = {
         ...nextItems[existingIndex],
         quantity: nextItems[existingIndex].quantity + 1,

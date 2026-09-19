@@ -77,7 +77,7 @@ export const INITIAL_PRODUCTS = [
     name: "TOÑA 12 ONZA",
     category: "cervezas",
     price: 70,
-    stock: 120,
+    stock: null,
     image: tona_12,
   },
   {
@@ -85,7 +85,7 @@ export const INITIAL_PRODUCTS = [
     name: "TOÑA LATA PEQUEÑA",
     category: "cervezas",
     price: 70,
-    stock: 90,
+    stock: null,
     image: tona_lata,
   },
   {
@@ -93,7 +93,7 @@ export const INITIAL_PRODUCTS = [
     name: "TOÑA LITRO",
     category: "cervezas",
     price: 70,
-    stock: 100,
+    stock: null,
     image: tona_litro,
   },
   {
@@ -101,7 +101,7 @@ export const INITIAL_PRODUCTS = [
     name: "CLASICA 12 ONZA",
     category: "cervezas",
     price: 75,
-    stock: 80,
+    stock: null,
     image: clasica_12,
   },
   {
@@ -109,7 +109,7 @@ export const INITIAL_PRODUCTS = [
     name: "CLASICA LATA PEQUEÑA",
     category: "cervezas",
     price: 100,
-    stock: 60,
+    stock: null,
     image: clasica_lata,
   },
   {
@@ -117,7 +117,7 @@ export const INITIAL_PRODUCTS = [
     name: "CLASICA LITRO",
     category: "cervezas",
     price: 100,
-    stock: 50,
+    stock: null,
     image: clasica_litro,
   },
   {
@@ -125,7 +125,7 @@ export const INITIAL_PRODUCTS = [
     name: "SPARK TRIPLE BERRY",
     category: "cervezas",
     price: 115,
-    stock: 45,
+    stock: null,
     image: spark_triple,
   },
   {
@@ -133,7 +133,7 @@ export const INITIAL_PRODUCTS = [
     name: "SPARK ROSADA",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: spark_rosada,
   },
   {
@@ -141,7 +141,7 @@ export const INITIAL_PRODUCTS = [
     name: "SPARK NAKET",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: spark_naket,
   },
   {
@@ -149,7 +149,7 @@ export const INITIAL_PRODUCTS = [
     name: "SPARK MANDARINA",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: spark_mandarina,
   },
   {
@@ -157,7 +157,7 @@ export const INITIAL_PRODUCTS = [
     name: "ULTRA TOÑA",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: ultra_tona,
   },
   {
@@ -165,7 +165,7 @@ export const INITIAL_PRODUCTS = [
     name: "SOL",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: sol,
   },
   {
@@ -173,7 +173,7 @@ export const INITIAL_PRODUCTS = [
     name: "HEINEKEN ",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: heineken,  
   
   },
@@ -182,7 +182,7 @@ export const INITIAL_PRODUCTS = [
     name: "MILLER",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: miller,
      
   },
@@ -191,7 +191,7 @@ export const INITIAL_PRODUCTS = [
     name: "SMIRNOF VERDE",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image:Smirnof,
       
   },
@@ -200,7 +200,7 @@ export const INITIAL_PRODUCTS = [
     name: "SMIRNOF ROJA",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image:
       SmirnoR,
   },
@@ -209,7 +209,7 @@ export const INITIAL_PRODUCTS = [
     name: "BAMBU DAYKIRI",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image: bambu_daykiri,
     
   },
@@ -219,7 +219,7 @@ export const INITIAL_PRODUCTS = [
     name: "BAMBU PIÑA",
     category: "cervezas",
     price: 100,
-    stock: 40,
+    stock: null,
     image:
       bambu_pina,
   },
@@ -230,7 +230,7 @@ export const INITIAL_PRODUCTS = [
     name: "RESERVA LITRO ",
     category: "licores",
     price: 135,
-    stock: 30,
+    stock: null,
     image: granReserva,
   },
   {
@@ -238,7 +238,7 @@ export const INITIAL_PRODUCTS = [
     name: "RESERVA MEDIA ",
     category: "licores",
     price: 195,
-    stock: 20,
+    stock: null,
     image: reservamedia,
   },
   {
@@ -246,7 +246,7 @@ export const INITIAL_PRODUCTS = [
     name: "EXTRA LITE LITRO",
     category: "licores",
     price: 185,
-    stock: 25,
+    stock: null,
     image:
      extraLite,
   },
@@ -255,7 +255,7 @@ export const INITIAL_PRODUCTS = [
     name: "ULTRA LITRO ",
     category: "licores",
     price: 265,
-    stock: 15,
+    stock: null,
     image:
       ultralite,
   },
@@ -264,7 +264,7 @@ export const INITIAL_PRODUCTS = [
     name: "ULTRA MEDIA ",
     category: "licores",
     price: 285,
-    stock: 12,
+    stock: null,
     image:
    ultralitemedio,
   },
@@ -273,7 +273,7 @@ export const INITIAL_PRODUCTS = [
     name: "PLATA LITRO ",
     category: "licores",
     price: 305,
-    stock: 10,
+    stock: null,
     image:
      platalitro
   },
@@ -282,13 +282,13 @@ export const INITIAL_PRODUCTS = [
     name: "PLATA MEDIA",
     category: "licores",
     price: 225,
-    stock: 18,
+    stock: null,
     image:
       platamedio
   },
  
 
-  // COMIDAS (Sin control de inventario / stock: null)
+  // Todos los productos operan sin control de inventario (stock: null).
   {
     id: 26,
     name: "ALITAS DE 6",
@@ -377,7 +377,7 @@ export const INITIAL_PRODUCTS = [
     name: "CHOVI NEGRA ",
     category: "Bebida sin alcohol",
     price: 215,
-    stock: 50,
+    stock: null,
     image:
       chubbynegra,
   },
@@ -386,7 +386,7 @@ export const INITIAL_PRODUCTS = [
     name: "CHOVI ROJA ",
     category: "Bebida sin alcohol",
     price: 185,
-    stock: 60,
+    stock: null,
     image:
       chubbyrojo,
   },
@@ -395,7 +395,7 @@ export const INITIAL_PRODUCTS = [
     name: "CHOVI NARANJA ",
     category: "Bebida sin alcohol",
     price: 225,
-    stock: 40,
+    stock: null,
     image:
      chubbynaranja,
   },
@@ -404,7 +404,7 @@ export const INITIAL_PRODUCTS = [
     name: "CHOVI FRESCA ",
     category: "Bebida sin alcohol",
     price: 245,
-    stock: 45,
+    stock: null,
     image:
      chubbyfresca
   },
@@ -413,7 +413,7 @@ export const INITIAL_PRODUCTS = [
     name: "POWER ROJO ",
     category: "Bebida sin alcohol",
     price: 215,
-    stock: 35,
+    stock: null,
     image:
       powerR
   },
@@ -422,7 +422,7 @@ export const INITIAL_PRODUCTS = [
     name: "POWER AZÚL ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 40,
+    stock: null,
     image:
      powerA
   },
@@ -431,7 +431,7 @@ export const INITIAL_PRODUCTS = [
     name: "GATORADE ROJO",
     category: "Bebida sin alcohol",
     price: 245,
-    stock: 30,
+    stock: null,
     image:
      gateroR
   },
@@ -440,7 +440,7 @@ export const INITIAL_PRODUCTS = [
     name: "GATORADE AZÚL ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
       gateroA
   },
@@ -449,7 +449,7 @@ export const INITIAL_PRODUCTS = [
     name: "LIPTON LIMON",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
      lipton
   },
@@ -458,7 +458,7 @@ export const INITIAL_PRODUCTS = [
     name: "HICT MANZANA ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
       hci
   },
@@ -468,7 +468,7 @@ export const INITIAL_PRODUCTS = [
     name: "AGUA LITRO  ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
       agualitro
   },
@@ -477,7 +477,7 @@ export const INITIAL_PRODUCTS = [
     name: "AGUA MEDIO LITRO  ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
       aguamedio
   },
@@ -486,7 +486,7 @@ export const INITIAL_PRODUCTS = [
     name: "ENSA PLASTICO  ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
      ensap
   },
@@ -495,7 +495,7 @@ export const INITIAL_PRODUCTS = [
     name: "ENSA VIDRIO ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
       ensav
   },
@@ -504,7 +504,7 @@ export const INITIAL_PRODUCTS = [
     name: "PEPSI VIDRIO ",
     category: "Bebida sin alcohol",
     price: 255,
-    stock: 25,
+    stock: null,
     image:
      pepsi
   },
@@ -542,4 +542,3 @@ export const INITIAL_PRODUCTS = [
 
 // Mesas dinámicas sin numeración predefinida
 export const INITIAL_TABLES = [];
-

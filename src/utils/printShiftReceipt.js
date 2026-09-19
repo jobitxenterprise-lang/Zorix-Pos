@@ -156,20 +156,14 @@ export const printShiftCloseReceipt = ({
       categorySummaryMap[catDisplayName].totalAmount += totalItem;
       categorySummaryMap[catDisplayName].totalUnits += physicalUnits;
 
-      // Calcular stock para la auditoría (incluyendo promociones/cubetazos)
-      let stockDisplay = "Cocina";
+      // El POS no controla existencias; el corte solo muestra ventas realizadas.
+      const stockDisplay = "Sin control";
       let displayName = prodName;
 
       if (prodName.toLowerCase().includes("cubetazo toña") || prodName.toLowerCase().includes("cubetazo tona")) {
         displayName = "CUBETAZO TOÑA (x6 bot.)";
-        const tonaProd = (products || []).find(p => p.name?.toLowerCase().includes("toña 12") || p.id === 1);
-        stockDisplay = tonaProd && tonaProd.stock !== null ? `${tonaProd.stock} Toña` : "110 Toña";
       } else if (prodName.toLowerCase().includes("cubetazo clasica")) {
         displayName = "CUBETAZO CLASICA (x6 bot.)";
-        const clasicaProd = (products || []).find(p => p.name?.toLowerCase().includes("clasica 12") || p.id === 4);
-        stockDisplay = clasicaProd && clasicaProd.stock !== null ? `${clasicaProd.stock} Clásica` : "6 Clásicas";
-      } else if (matchedProd && matchedProd.stock !== null && matchedProd.category !== "comida") {
-        stockDisplay = `${matchedProd.stock} unid.`;
       }
 
       // Acumular por producto: unidades, total vendido, costo y ganancia

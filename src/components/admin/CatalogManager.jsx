@@ -59,7 +59,7 @@ export const CatalogManager = () => {
               category: editingProduct ? editingProduct.category : (activeCategories[0]?.id || 'cervezas'),
               price: editingProduct ? editingProduct.price : '',
               cost: editingProduct ? (editingProduct.cost || '') : '',
-              stock: editingProduct ? (editingProduct.stock === null ? '' : editingProduct.stock) : '',
+              stock: '',
               bundleProductId: editingProduct?.bundleItems?.[0]?.productId || '',
               bundleQuantity: editingProduct?.bundleItems?.[0]?.quantity || 6
             }}
@@ -68,7 +68,6 @@ export const CatalogManager = () => {
               if (!values.name.trim()) errors.name = 'Requerido';
               if (!values.price || values.price <= 0) errors.price = 'Precio inválido';
               if (!values.cost || values.cost < 0) errors.cost = 'Costo inválido';
-              if (values.category !== 'comida' && values.category !== 'promociones' && (values.stock === '' || values.stock < 0)) errors.stock = 'Stock inválido';
               if (values.category === 'promociones') {
                  if (!values.bundleProductId) errors.bundleProductId = 'Debe seleccionar un producto base';
                  if (!values.bundleQuantity || values.bundleQuantity <= 0) errors.bundleQuantity = 'Cantidad inválida';
@@ -81,7 +80,7 @@ export const CatalogManager = () => {
                 ...values,
                 price: parseFloat(values.price),
                 cost: parseFloat(values.cost),
-                stock: (values.category === 'comida' || values.category === 'promociones') ? null : parseInt(values.stock, 10),
+                stock: null,
               };
 
               if (values.category === 'promociones') {
@@ -234,20 +233,9 @@ export const CatalogManager = () => {
                       </div>
                     </div>
                   ) : (
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Stock Actual:</label>
-                      <Field
-                        type="number"
-                        name="stock"
-                        placeholder="0"
-                        disabled={values.category === 'comida'}
-                        className="w-full p-2 border border-slate-300 rounded text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                      />
-                      <ErrorMessage name="stock" component="div" className="text-red-500 text-[10px] mt-1 font-semibold" />
-                      {values.category === 'comida' && (
-                        <span className="text-[10px] text-slate-500 mt-1 block">Comida no usa stock numérico</span>
-                      )}
-                    </div>
+                    <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded p-2">
+                      Este POS no controla existencias: todos los productos permanecen disponibles para venta.
+                    </p>
                   )}
 
                   <div className="flex gap-2 pt-4 border-t border-slate-200">
@@ -302,7 +290,7 @@ export const CatalogManager = () => {
                 <tr className="bg-blue-950 text-white border-b border-slate-200 text-[10px] uppercase font-bold">
                   <th className="p-3 pl-4">Producto</th>
                   <th className="p-3">Precio</th>
-                  <th className="p-3">Stock</th>
+                  <th className="p-3">Disponibilidad</th>
                   <th className="p-3 text-right pr-4">Acciones</th>
                 </tr>
               </thead>
@@ -325,7 +313,7 @@ export const CatalogManager = () => {
                         </span>
                       ) : (
                         <span className="px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-500 text-[10px]">
-                          Prep.
+                          Sin control
                         </span>
                       )}
                     </td>

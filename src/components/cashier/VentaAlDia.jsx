@@ -305,17 +305,11 @@ export const VentaAlDia = () => {
               </div>
             ) : (
               filteredProducts.map((product) => {
-                const isOutOfStock = product.stock !== null && product.stock <= 0;
-
                 return (
                   <div
                     key={product.id}
-                    onClick={() => !isOutOfStock && handleAddToCart(product)}
-                    className={`p-3 bg-white border-2 rounded-2xl transition-all flex flex-col justify-between group ${
-                      isOutOfStock
-                        ? 'border-slate-200 opacity-50 cursor-not-allowed'
-                        : 'border-slate-200 hover:border-blue-500 cursor-pointer shadow-xs hover:-translate-y-0.5'
-                    }`}
+                    onClick={() => handleAddToCart(product)}
+                    className="p-3 bg-white border-2 rounded-2xl transition-all flex flex-col justify-between group border-slate-200 hover:border-blue-500 cursor-pointer shadow-xs hover:-translate-y-0.5"
                   >
                     <div>
                       {/* Imagen o Ícono */}
@@ -330,15 +324,6 @@ export const VentaAlDia = () => {
                           <MdLocalOffer className="w-8 h-8 text-slate-300" />
                         )}
 
-                        {product.stock !== null && (
-                          <span className={`absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md text-[10px] font-black ${
-                            isOutOfStock
-                              ? 'bg-red-500 text-white'
-                              : 'bg-slate-900/80 text-emerald-400 backdrop-blur-xs'
-                          }`}>
-                            {isOutOfStock ? 'Agotado' : `${product.stock} disp.`}
-                          </span>
-                        )}
                       </div>
 
                       <h4 className="text-xs font-extrabold text-slate-800 line-clamp-2 m-0 group-hover:text-blue-600 transition-colors">
@@ -351,12 +336,11 @@ export const VentaAlDia = () => {
                         C${Number(product.price).toFixed(2)}
                       </span>
                       <button
-                        disabled={isOutOfStock}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!isOutOfStock) handleAddToCart(product);
+                          handleAddToCart(product);
                         }}
-                        className="p-1.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                        className="p-1.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg transition-all cursor-pointer active:scale-95"
                       >
                         <Plus className="w-4 h-4 stroke-[3px]" />
                       </button>

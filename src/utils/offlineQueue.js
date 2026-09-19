@@ -124,7 +124,7 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
 
       switch (item.type) {
         case 'CREATE_INVOICE': {
-          const { invoice, invoiceItems, stockDeductions, tableInfo } = item.payload;
+          const { invoice, invoiceItems, tableInfo } = item.payload;
           
           // 1. Insertar factura
           const { error: invErr } = await supabase.from('invoices').insert(invoice);
@@ -138,22 +138,7 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
             await supabase.from('invoice_items').insert(invoiceItems);
           }
 
-          // 3. Aplicar descuento de stock
-          if (stockDeductions && stockDeductions.length > 0) {
-            for (const deduct of stockDeductions) {
-              const { data: prod } = await supabase
-                .from('products')
-                .select('stock')
-                .eq('id', deduct.productId)
-                .single();
-              if (prod && prod.stock !== null) {
-                const newStock = Math.max(0, prod.stock - deduct.quantity);
-                await supabase.from('products').update({ stock: newStock }).eq('id', deduct.productId);
-              }
-            }
-          }
-
-          // 4. Liberar mesa eliminándola de mesas activas
+          // 3. Liberar mesa eliminándola de mesas activas
           if (tableInfo) {
             await supabase.from('tables').delete().eq('id', String(tableInfo.id));
             await supabase.from('orders').delete().eq('table_id', String(tableInfo.id));

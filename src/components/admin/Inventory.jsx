@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import { Search, Edit2, AlertCircle } from 'lucide-react';
-import { Modal } from '../common/Modal';
+import { Search } from 'lucide-react';
 import { CATEGORIES } from '../../mock/initialData';
 
 export const Inventory = () => {
-  const { products, updateStock, categories } = useBar();
+  const { products, categories } = useBar();
   const activeCategories = categories && categories.length > 0 ? categories : CATEGORIES;
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Excluir comidas de la gestión de inventario
-  const inventoryProducts = products.filter(p => String(p.category).toLowerCase() !== 'comida');
+  // El POS no lleva inventario numérico: esta vista conserva el catálogo disponible.
+  const inventoryProducts = products;
 
   // Filtrado
   const filteredProducts = inventoryProducts.filter(p => {
@@ -23,7 +20,7 @@ export const Inventory = () => {
   });
 
   // Conteos
-  const categoryCounts = activeCategories.filter(c => String(c.id).toLowerCase() !== 'comida').reduce((acc, cat) => {
+  const categoryCounts = activeCategories.reduce((acc, cat) => {
     acc[cat.id] = inventoryProducts.filter(p => String(p.category).toLowerCase() === String(cat.id).toLowerCase()).length;
     return acc;
   }, {});
@@ -62,7 +59,7 @@ export const Inventory = () => {
               </span>
             </button>
 
-            {activeCategories.filter(c => String(c.id).toLowerCase() !== 'comida').map(cat => (
+            {activeCategories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
@@ -82,8 +79,6 @@ export const Inventory = () => {
         {/* Grilla de Tarjetas */}
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5 items-start content-start">
           {filteredProducts.map(product => {
-            const isLow = product.stock !== null && product.stock <= 20; // umbral de prueba
-            
             return (
               <div key={product.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between h-[180px]">
                 
@@ -92,11 +87,6 @@ export const Inventory = () => {
                   <span className="bg-slate-100 border border-slate-200 text-blue-950 text-[9px] font-extrabold uppercase px-2 py-1 rounded">
                     {product.category}
                   </span>
-                  {isLow && (
-                    <span className="bg-red-50 border border-red-200 text-red-600 text-[9px] font-extrabold uppercase px-2 py-1 rounded">
-                      Stock Bajo
-                    </span>
-                  )}
                 </div>
 
                 {/* Middle Section */}
@@ -106,36 +96,20 @@ export const Inventory = () => {
                     <span className="font-extrabold text-blue-950 text-[15px]">C${product.price.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-slate-400 line-clamp-2 mt-1.5 leading-snug">
-                    Producto disponible en almacén principal.
+                    Disponible para venta sin control de existencias.
                   </p>
                 </div>
 
                 {/* Bottom Section */}
                 <div className="mt-auto pt-4 flex justify-between items-end">
                   <div>
-                    <span className={`text-[9px] font-extrabold uppercase block mb-0.5 ${isLow ? 'text-red-600' : 'text-slate-500'}`}>
-                      {isLow ? 'Crítico' : 'Disponible'}
+                    <span className="text-[9px] font-extrabold uppercase block mb-0.5 text-slate-500">
+                      Sin control
                     </span>
-                    <span className={`text-xl font-black leading-none ${isLow ? 'text-red-600' : 'text-blue-950'}`}>
-                      {product.stock} <span className="text-[11px] font-bold">u.</span>
+                    <span className="text-xl font-black leading-none text-blue-950">
+                      —
                     </span>
                   </div>
-                  
-                  {isLow ? (
-                    <button
-                      onClick={() => setSelectedProduct(product)}
-                      className="bg-blue-950 text-white text-[10px] font-extrabold px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-900 transition-colors shadow-sm"
-                    >
-                      REABASTECER
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setSelectedProduct(product)}
-                      className="text-blue-950 text-[11px] font-extrabold flex items-center gap-1.5 hover:underline cursor-pointer"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" /> AJUSTAR
-                    </button>
-                  )}
                 </div>
               </div>
             );
@@ -143,68 +117,6 @@ export const Inventory = () => {
         </div>
       </div>
 
-      {/* Modal de Reabastecimiento / Ajuste de Stock */}
-      {selectedProduct && (
-        <Modal
-          isOpen={true}
-          onClose={() => setSelectedProduct(null)}
-          title={`Ajuste de Inventario: ${selectedProduct.name}`}
-        >
-          <Formik
-            initialValues={{ stockToAdd: '' }}
-            validationSchema={StockSchema}
-            onSubmit={handleStockSubmit}
-          >
-            {({ isSubmitting, values }) => {
-              const parsedVal = parseInt(values.stockToAdd, 10);
-              const newTotal = (selectedProduct.stock || 0) + (isNaN(parsedVal) ? 0 : parsedVal);
-
-              return (
-                <Form className="space-y-4">
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm flex justify-between items-center">
-                    <span className="text-blue-950 font-semibold">Stock actual:</span>
-                    <span className="text-xl font-black text-blue-950">{selectedProduct.stock}</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-blue-950 mb-2">Cantidad a Sumar o Restar:</label>
-                    <Field
-                      type="number"
-                      name="stockToAdd"
-                      placeholder="Ej: 10 (sumar) o -5 (restar)"
-                      className="w-full p-4 border border-slate-300 rounded-xl text-lg text-blue-950 bg-white font-black focus:ring-2 focus:ring-blue-950 focus:border-blue-950 focus:outline-none transition-all placeholder:text-slate-400 placeholder:font-medium placeholder:text-sm"
-                    />
-                    <ErrorMessage name="stockToAdd" component="div" className="text-red-500 text-[11px] mt-1.5 font-bold" />
-                  </div>
-
-                  {values.stockToAdd !== '' && !isNaN(parsedVal) && newTotal >= 0 && (
-                    <div className="text-center bg-emerald-50 text-emerald-800 font-bold p-2 rounded-lg border border-emerald-200 text-sm">
-                      El nuevo stock será: {newTotal}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-2 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedProduct(null)}
-                      className="flex-1 bg-slate-100 border border-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm hover:bg-slate-200 cursor-pointer transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1 bg-blue-950 text-white font-black py-3 rounded-xl text-sm hover:bg-blue-900 cursor-pointer shadow-md transition-colors"
-                    >
-                      Aplicar Ajuste
-                    </button>
-                  </div>
-                </Form>
-              );
-            }}
-          </Formik>
-        </Modal>
-      )}
     </div>
   );
 };

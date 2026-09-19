@@ -92,18 +92,11 @@ export const ProductCatalog = ({
       >
         {filteredProducts.map((product) => {
           const qty = getItemQuantity(product.id);
-          const hasStock = product.stock !== null;
-          const isOutOfStock = hasStock && product.stock <= 0;
-
           return (
             <div
               key={product.id}
-              onClick={() => !isOutOfStock && onSelectProduct(product)}
-              className={`rounded-2xl border text-left transition-all flex flex-col overflow-hidden relative h-full min-h-[250px] shadow-xs hover:shadow-md ${
-                isOutOfStock
-                  ? "bg-red-50 border-red-200 opacity-60 cursor-not-allowed"
-                  : "bg-white border-slate-200 hover:border-blue-400 cursor-pointer"
-              }`}
+              onClick={() => onSelectProduct(product)}
+              className="rounded-2xl border text-left transition-all flex flex-col overflow-hidden relative h-full min-h-[250px] shadow-xs hover:shadow-md bg-white border-slate-200 hover:border-blue-400 cursor-pointer"
             >
               {/* Imagen y Precio */}
               <div className="relative h-[130px] md:h-[150px] w-full shrink-0 bg-slate-100 flex items-center justify-center overflow-hidden">
@@ -126,32 +119,17 @@ export const ProductCatalog = ({
                     {product.name}
                   </h4>
                   <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                    {hasStock ? (
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
-                          product.stock < 10
-                            ? "bg-blue-50 text-blue-900 border border-blue-200"
-                            : "bg-slate-100 text-slate-600 border border-slate-200"
-                        }`}
-                      >
-                        Stock: {product.stock}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Preparado
-                      </span>
-                    )}
+                    <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Disponible
+                    </span>
                   </div>
                 </div>
 
                 <div className="mt-2.5">
                   <button
                     type="button"
-                    disabled={isOutOfStock}
                     className={`w-full text-xs font-bold px-2 py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-xs ${
-                      isOutOfStock
-                        ? "bg-slate-200 text-slate-400"
-                        : qty > 0
+                      qty > 0
                         ? "bg-blue-700 text-white"
                         : "bg-blue-600 hover:bg-blue-500 text-white active:scale-95"
                     }`}
