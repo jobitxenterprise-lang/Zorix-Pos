@@ -10,14 +10,30 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
       workbox: {
-        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024, // 15MB limit
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,ico,webmanifest}'], // Evita pre-cachear 130MB de imágenes pesadas en el manifest inicial
+        navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/, /^https:\/\/.*\.supabase\.co/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'zorix-images-cache',
+              expiration: {
+                maxEntries: 120,
+                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 días
+              }
+            }
           }
         ]
       },
@@ -45,4 +61,3 @@ export default defineConfig({
     })
   ],
 })
-
