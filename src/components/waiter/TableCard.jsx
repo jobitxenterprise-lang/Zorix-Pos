@@ -13,6 +13,7 @@ export const TableCard = ({ table, onClick }) => {
   const isPendingPayment = table.status === 'pendiente_pago';
   const isBar = table.isBar;
 
+  let statusBadgeText = isBar ? 'Barra' : isPendingPayment ? 'En Caja' : 'Ocupada';
   let statusBadgeStyle = isPendingPayment 
     ? 'bg-blue-100 text-blue-950 border-blue-300' 
     : isBar 
