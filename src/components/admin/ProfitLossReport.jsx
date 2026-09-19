@@ -293,13 +293,13 @@ export const ProfitLossReport = () => {
           <p className="text-[10px] text-rose-600 font-semibold mt-1 leading-tight">Costo de los productos que vendiste este mes.</p>
         </div>
 
-        <div className="bg-amber-50 p-5 rounded-xl border border-amber-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-2 text-amber-700">
+        <div className="bg-blue-50 p-5 rounded-xl border border-blue-200 shadow-sm">
+          <div className="flex items-center gap-2 mb-2 text-blue-800">
             <Briefcase className="w-4 h-4" />
             <h3 className="text-xs font-bold uppercase m-0">Gastos Operativos</h3>
           </div>
-          <p className="text-2xl font-black text-amber-900 m-0">C${totalOpExpenses.toFixed(2)}</p>
-          <p className="text-[10px] text-amber-600 font-semibold mt-1 leading-tight">Servicios, planillas y otros gastos.</p>
+          <p className="text-2xl font-black text-blue-950 m-0">C${totalOpExpenses.toFixed(2)}</p>
+          <p className="text-[10px] text-blue-800 font-semibold mt-1 leading-tight">Servicios, planillas y otros gastos.</p>
         </div>
 
         <div className={`${isProfitable ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'} p-5 rounded-xl border shadow-sm`}>
@@ -337,7 +337,7 @@ export const ProfitLossReport = () => {
 
             <div className="pt-2">
               <span className="text-xs font-bold text-slate-500 uppercase">Gastos Registrados / Operativos</span>
-              <div className="pl-4 mt-2 space-y-2 text-sm text-amber-700">
+              <div className="pl-4 mt-2 space-y-2 text-sm text-blue-900">
                 {(expensesByCat['compras'] > 0 || (!expensesByCat['planilla'] && !expensesByCat['servicios'] && !expensesByCat['otros'])) && (
                   <div className="flex justify-between items-center">
                     <span>Compras / Mercadería</span>
@@ -431,10 +431,10 @@ export const ProfitLossReport = () => {
                   <span className="text-xs text-blue-700 font-medium">Bancos / Vouchers</span>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl">
-                  <span className="text-[10px] font-extrabold text-amber-800 uppercase tracking-wider block">En Consumo (Mesas)</span>
-                  <h4 className="text-2xl font-black text-amber-900 m-0 mt-0.5">C${activeConsumptionTotal.toFixed(2)}</h4>
-                  <span className="text-xs text-amber-700 font-bold">{occupiedTables.length} mesas por cobrar</span>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
+                  <span className="text-[10px] font-extrabold text-blue-950 uppercase tracking-wider block">En Consumo (Mesas)</span>
+                  <h4 className="text-2xl font-black text-blue-900 m-0 mt-0.5">C${activeConsumptionTotal.toFixed(2)}</h4>
+                  <span className="text-xs text-blue-800 font-bold">{occupiedTables.length} mesas por cobrar</span>
                 </div>
               </div>
 

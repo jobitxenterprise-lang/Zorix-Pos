@@ -130,7 +130,7 @@ export const ProductCatalog = ({
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
                           product.stock < 10
-                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            ? "bg-blue-50 text-blue-900 border border-blue-200"
                             : "bg-slate-100 text-slate-600 border border-slate-200"
                         }`}
                       >

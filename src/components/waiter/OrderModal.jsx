@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useBar } from "../../context/BarContext";
+import { showConfirm, showError } from "../../utils/swal";
 import { ProductCatalog } from "./ProductCatalog";
 import { InvoicePreview } from "./InvoicePreview";
 import { ComandaPreview } from "./ComandaPreview";
@@ -175,7 +176,12 @@ export const OrderModal = ({ table, onClose }) => {
 
   const handleCheckoutFromModal = async () => {
     if (localItems.length === 0) return;
-    const confirmed = confirm(`¿Confirmas el cobro directo de ${tableName || table.name} por un total de C$${calculateTotal().toFixed(2)}?`);
+    const confirmed = await showConfirm({
+      title: "Confirmar Cobro",
+      text: `¿Confirmas el cobro directo de ${tableName || table.name} por un total de C$${calculateTotal().toFixed(2)}?`,
+      confirmButtonText: "Sí, cobrar",
+      icon: "question"
+    });
     if (!confirmed) return;
 
     try {
@@ -183,17 +189,23 @@ export const OrderModal = ({ table, onClose }) => {
       onClose();
     } catch (err) {
       console.error("Error al cobrar desde detalle:", err);
-      alert("Ocurrió un error al procesar el cobro: " + err.message);
+      showError("Error al procesar cobro", err.message);
     }
   };
 
-  const handleClearTable = () => {
+  const handleClearTable = async () => {
     if (isMesero) {
       setErrorMsg("El rol Mesero no tiene permiso para vaciar o cancelar el pedido.");
       setTimeout(() => setErrorMsg(""), 4000);
       return;
     }
-    if (confirm(`¿Estás seguro de cancelar el pedido de la ${tableName || table.name}?`)) {
+    const confirmed = await showConfirm({
+      title: "Cancelar Pedido",
+      text: `¿Estás seguro de cancelar el pedido de la ${tableName || table.name}?`,
+      confirmButtonText: "Sí, cancelar pedido",
+      icon: "warning"
+    });
+    if (confirmed) {
       setLocalItems([]);
       setLocalUnprinted([]);
       cancelTableOrder(table.id);
@@ -246,7 +258,7 @@ export const OrderModal = ({ table, onClose }) => {
                     {localItems.length > 0 ? "Con pedido" : "Vacía"}
                   </span>
                   {table.assignedWaiterName && (
-                  <span className="font-extrabold px-2 py-0.5 rounded border text-[10px] bg-amber-50 text-amber-800 border-amber-300">
+                  <span className="font-extrabold px-2 py-0.5 rounded border text-[10px] bg-blue-50 text-blue-950 border-blue-200">
                     👤 {table.assignedWaiterName}
                   </span>
                 )}

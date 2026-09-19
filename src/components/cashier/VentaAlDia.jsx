@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showAlert, showError } from '../../utils/swal';
 import { 
   Search, 
   ShoppingBag, 
@@ -199,7 +200,11 @@ export const VentaAlDia = () => {
     if (cartItems.length === 0) return;
 
     if (paymentMethod === 'Efectivo' && cashGiven && Number(cashGiven) < totalAmount) {
-      alert(`El monto entregado (C$${Number(cashGiven).toFixed(2)}) es menor al total a pagar (C$${totalAmount.toFixed(2)}).`);
+      showAlert({
+        title: "Monto Insuficiente",
+        text: `El monto entregado (C$${Number(cashGiven).toFixed(2)}) es menor al total a pagar (C$${totalAmount.toFixed(2)}).`,
+        icon: "warning"
+      });
       return;
     }
 
@@ -232,7 +237,7 @@ export const VentaAlDia = () => {
       }, 1200);
     } catch (err) {
       console.error('Error al cobrar venta directa:', err);
-      alert('Ocurrió un error al procesar la venta: ' + err.message);
+      showError("Error al procesar la venta", err.message);
     } finally {
       setIsProcessing(false);
     }

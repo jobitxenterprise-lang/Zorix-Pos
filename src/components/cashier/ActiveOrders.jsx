@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showInputPrompt } from '../../utils/swal';
 import { OrderCard } from './OrderCard';
 import { Receipt, PlusCircle, Search, X } from 'lucide-react';
 import { MdLocalBar, MdTableRestaurant } from "react-icons/md";
@@ -41,7 +42,7 @@ export const ActiveOrders = () => {
   });
 
   const handleCreateBarAccount = async () => {
-    const customerName = prompt("Ingresa el nombre del cliente para la cuenta en barra:");
+    const customerName = await showInputPrompt({ title: "Nueva Cuenta en Barra", text: "Ingresa el nombre del cliente:", required: true });
     if (customerName) {
       const newId = await addBarAccount(customerName);
       if (newId) {

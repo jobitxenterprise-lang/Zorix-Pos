@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showAlert } from '../../utils/swal';
 import { DollarSign, Receipt, AlertTriangle, CheckCircle, Printer } from 'lucide-react';
 import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 import { CierreDeCajaModal } from './CierreDeCajaModal';
@@ -15,6 +16,18 @@ export const Dashboard = () => {
 
   const activeTablesCount = tables.filter(t => t.status === 'ocupada' || t.status === 'pendiente_pago').length;
 
+  const handlePrintDraftTicket = () => {
+    printShiftCloseReceipt({
+      invoices: paidInvoices,
+      cashierName: currentUser?.name || 'Cajero',
+      startTime: shiftStartTime,
+      endTime: new Date().toISOString(),
+      products,
+      categories,
+      shiftId: currentShiftId || '',
+    });
+  };
+
   const handlePrintZReceipt = () => {
     printShiftCloseReceipt({
       invoices: paidInvoices,
@@ -29,7 +42,11 @@ export const Dashboard = () => {
 
   const handleCloseShift = () => {
     if (activeTablesCount > 0) {
-      alert(`No puedes cerrar caja. Hay ${activeTablesCount} mesa(s) abierta(s) o pendiente(s) de pago.`);
+      showAlert({
+        title: "Caja bloqueada",
+        text: `No puedes cerrar caja. Hay ${activeTablesCount} mesa(s) abierta(s) o pendiente(s) de pago.`,
+        icon: "warning"
+      });
       return;
     }
     setIsCloseModalOpen(true);
@@ -98,8 +115,8 @@ export const Dashboard = () => {
       </div>
 
       {activeTablesCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 p-3.5 sm:p-4 rounded-xl flex items-center gap-3 text-amber-800 text-xs sm:text-sm font-semibold">
-          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+        <div className="bg-blue-50 border border-blue-200 p-3.5 sm:p-4 rounded-xl flex items-center gap-3 text-blue-950 text-xs sm:text-sm font-semibold">
+          <AlertTriangle className="w-5 h-5 text-blue-700 shrink-0" />
           <p className="m-0">No puedes cerrar la caja porque hay {activeTablesCount} mesa(s) con clientes. Debes cobrar o cancelar todas las cuentas antes de cerrar el turno.</p>
         </div>
       )}
@@ -137,7 +154,7 @@ export const Dashboard = () => {
                       <br />
                       <span className="text-slate-500 text-[11px]">{inv.customerName}</span>
                       <br />
-                      <span className="text-amber-700 font-bold text-[10px]">🍹 Mesero: {inv.waiterName || 'Mesero'}</span>
+                      <span className="text-blue-900 font-bold text-[10px]">🍹 Mesero: {inv.waiterName || 'Mesero'}</span>
                     </td>
                     <td className="p-2.5">
                       <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${

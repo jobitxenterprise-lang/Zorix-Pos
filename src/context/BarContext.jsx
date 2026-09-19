@@ -8,6 +8,7 @@ import {
   saveOfflineSnapshot, 
   getOfflineSnapshot 
 } from "../utils/offlineQueue";
+import { showAlert, showError, showInputPrompt, showConfirm } from "../utils/swal";
 
 const BarContext = createContext();
 const SESSION_KEY = "bar_active_session_v1";
@@ -806,7 +807,7 @@ export const BarProvider = ({ children }) => {
           pendingSyncTablesRef.current.delete(sTableId);
           latestPendingWriteRef.current.delete(sTableId);
           console.warn("Conflicto de versión en mesa", sTableId);
-          window.alert("Esta cuenta fue modificada desde otro dispositivo o reiniciada. Se cargará la versión más reciente antes de continuar.");
+          showAlert({ title: "Conflicto de Versión", text: "Esta cuenta fue modificada desde otro dispositivo o reiniciada. Se cargará la versión más reciente antes de continuar.", icon: "warning" });
           fetchData(true);
           return;
         }
@@ -869,7 +870,7 @@ export const BarProvider = ({ children }) => {
             (i) => String(i.product?.id || i.product) === origProdId
           );
           if (!newItem || newItem.quantity < origItem.quantity) {
-            alert("No tienes permiso para anular productos ni disminuir cantidades. Esta acción requiere autorización de un Cajero o Administrador.");
+            showAlert({ title: "Acción no permitida", text: "No tienes permiso para anular productos ni disminuir cantidades. Esta acción requiere autorización de un Cajero o Administrador.", icon: "error" });
             return;
           }
         }
@@ -978,7 +979,7 @@ export const BarProvider = ({ children }) => {
 
   const addBarAccount = async (customerName) => {
     if (currentRole === "cajero" || currentUser?.role === "cajero") {
-      alert("El rol Cajero no tiene permiso para abrir cuentas en barra.");
+      showAlert({ title: "Permiso denegado", text: "El rol Cajero no tiene permiso para abrir cuentas en barra.", icon: "error" });
       return null;
     }
     try {
@@ -1027,7 +1028,7 @@ export const BarProvider = ({ children }) => {
           console.warn("📵 Creación de cuenta barra en modo offline. Se sincronizará al agregar productos.");
         } else {
           console.error("Error creating bar account:", error);
-          window.alert("Error creando cuenta en barra: " + error.message);
+          showError("Error creando cuenta en barra", error.message);
         }
       }
       return newBarId;
@@ -1035,7 +1036,7 @@ export const BarProvider = ({ children }) => {
       if (!navigator.onLine || err.message?.includes("Failed to fetch")) {
         console.warn("📵 Crash offline ignorado al crear barra.");
       } else {
-        window.alert("Crash al crear cuenta en barra: " + err.message);
+        showError("Crash al crear cuenta en barra", err.message);
       }
     }
   };
@@ -1043,7 +1044,7 @@ export const BarProvider = ({ children }) => {
   // Función para abrir una mesa con número de mesa, cliente y zona/área dinámicos
   const openTable = async ({ tableNumber, customerName, area = "Rancho principal" }) => {
     if (currentRole === "cajero" || currentUser?.role === "cajero") {
-      alert("El rol Cajero no tiene permiso para abrir nuevas mesas.");
+      showAlert({ title: "Permiso denegado", text: "El rol Cajero no tiene permiso para abrir nuevas mesas.", icon: "error" });
       return null;
     }
     try {
@@ -1112,20 +1113,20 @@ export const BarProvider = ({ children }) => {
 
   const addNewTable = async () => {
     if (currentRole === "cajero" || currentUser?.role === "cajero") {
-      alert("El rol Cajero no tiene permiso para abrir nuevas mesas.");
+      showAlert({ title: "Permiso denegado", text: "El rol Cajero no tiene permiso para abrir nuevas mesas.", icon: "error" });
       return null;
     }
     // Compatibilidad: abre una mesa solicitando los datos
-    const num = prompt("Ingresa el número de mesa:");
+    const num = await showInputPrompt({ title: "Nueva Mesa", text: "Ingresa el número de mesa:", required: true });
     if (!num) return null;
-    const client = prompt("Ingresa el nombre del cliente (opcional):") || "";
+    const client = (await showInputPrompt({ title: "Nombre del Cliente", text: "Ingresa el nombre del cliente (opcional):" })) || "";
     return await openTable({ tableNumber: num, customerName: client });
   };
 
   // Función para eliminar mesas creadas dinámicamente
   const deleteTable = async (tableId) => {
     if (currentRole === "mesero" || currentUser?.role === "mesero") {
-      alert("El rol Mesero no tiene permiso para cancelar o eliminar mesas.");
+      showAlert({ title: "Permiso denegado", text: "El rol Mesero no tiene permiso para cancelar o eliminar mesas.", icon: "error" });
       return;
     }
     try {
@@ -1135,7 +1136,7 @@ export const BarProvider = ({ children }) => {
       const { error } = await supabase.from("tables").delete().eq("id", sTableId);
       if (error) {
         console.error("Error deleting table:", error);
-        alert("Error eliminando mesa: " + error.message);
+        showError("Error al eliminar mesa", error.message);
         return;
       }
       setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
@@ -1149,7 +1150,7 @@ export const BarProvider = ({ children }) => {
       await fetchData(true);
     } catch (err) {
       console.error("Error al eliminar mesa:", err);
-      alert("Error al eliminar la mesa: " + err.message);
+      showError("Error al eliminar la mesa", err.message);
     }
   };
 
@@ -1186,7 +1187,7 @@ export const BarProvider = ({ children }) => {
 
   const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
     if (currentRole === "mesero" || currentUser?.role === "mesero") {
-      alert("El rol Mesero no tiene permiso para cobrar facturas.");
+      showAlert({ title: "Permiso denegado", text: "El rol Mesero no tiene permiso para cobrar facturas.", icon: "error" });
       return;
     }
     const sTableId = String(tableId);
@@ -1639,7 +1640,7 @@ export const BarProvider = ({ children }) => {
 
   const cancelTableOrder = async (tableId) => {
     if (currentRole === "mesero" || currentUser?.role === "mesero") {
-      alert("El rol Mesero no tiene permiso para cancelar o eliminar mesas.");
+      showAlert({ title: "Permiso denegado", text: "El rol Mesero no tiene permiso para cancelar o eliminar mesas.", icon: "error" });
       return;
     }
     const sTableId = String(tableId);

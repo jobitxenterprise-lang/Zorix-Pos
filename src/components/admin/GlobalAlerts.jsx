@@ -35,8 +35,8 @@ export const GlobalAlerts = () => {
   return (
     <div className="fixed top-6 right-6 z-50 flex flex-col gap-3 max-w-sm">
       {alerts.map(alert => (
-        <div key={alert.id} className="bg-white border-l-4 border-amber-500 rounded-lg shadow-xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-right-8 duration-300">
-          <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0 mt-0.5" />
+        <div key={alert.id} className="bg-white border-l-4 border-blue-600 rounded-lg shadow-xl p-4 flex items-start gap-3 animate-in fade-in slide-in-from-right-8 duration-300">
+          <AlertTriangle className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
           <div className="flex-1">
             <h4 className="text-sm font-bold text-slate-800 m-0">¡Alerta de Pago Próximo!</h4>
             <p className="text-xs text-slate-600 m-0 mt-1">

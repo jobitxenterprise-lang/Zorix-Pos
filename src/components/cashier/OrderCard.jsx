@@ -2,20 +2,24 @@ import React, { useState } from 'react';
 import { DollarSign, Clock, Users, Edit, Trash2, MapPin, User, CheckCircle } from 'lucide-react';
 import { MdLocalBar, MdTableRestaurant } from "react-icons/md";
 import { useBar } from '../../context/BarContext';
+import { showConfirm, showError } from '../../utils/swal';
 import { IoEye } from "react-icons/io5";
 
 export const OrderCard = ({ table, onEdit }) => {
   const { deleteTable, payInvoice } = useBar();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const total = table.items ? table.items.reduce((sum, i) => sum + (i.product?.price || i.price || 0) * i.quantity, 0) : 0;
   const isPending = table.status === 'pendiente_pago';
-  const isBar = table.isBar;
-  const isEmpty = !table.items || table.items.length === 0;
+  const total = table.items ? table.items.reduce((sum, item) => sum + (item.product?.price || item.price || 0) * item.quantity, 0) : 0;
 
   // Manejador del cobro directo
   const handleDirectCheckout = async () => {
-    const confirmed = confirm(`¿Confirmas el cobro directo de ${table.name} por un total de C$${total.toFixed(2)}?`);
+    const confirmed = await showConfirm({
+      title: "Confirmar Cobro",
+      text: `¿Confirmas el cobro directo de ${table.name} por un total de C$${total.toFixed(2)}?`,
+      confirmButtonText: "Sí, cobrar",
+      icon: "question"
+    });
     if (!confirmed) return;
 
     try {
@@ -23,27 +27,33 @@ export const OrderCard = ({ table, onEdit }) => {
       await payInvoice(table.id, 'Efectivo', '');
     } catch (err) {
       console.error("Error al cobrar orden:", err);
-      alert("Ocurrió un error al procesar el cobro: " + err.message);
+      showError("Error al procesar el cobro", err.message);
     } finally {
       setIsProcessing(false);
     }
   };
 
   // Manejador para eliminar mesa previa confirmación
-  const handleDeleteTable = () => {
-    if (confirm(`¿Estás seguro de eliminar ${table.name}? esta acción no se puede deshacer.`)) {
+  const handleDeleteTable = async () => {
+    const confirmed = await showConfirm({
+      title: "Eliminar Mesa",
+      text: `¿Estás seguro de eliminar ${table.name}? Esta acción no se puede deshacer.`,
+      confirmButtonText: "Sí, eliminar",
+      icon: "warning"
+    });
+    if (confirmed) {
       deleteTable(table.id);
     }
   };
 
   return (
     <div className={`bg-white border-2 rounded-2xl p-5  transition-all flex flex-col justify-between h-full relative ${
-      isPending ? 'border-amber-400 ring-2 ring-amber-400/20' : 'border-slate-200 '
+      isPending ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 '
     }`}>
       
       {/* Banner de Cuenta Solicitada */}
       {isPending && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-950 text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 z-10 animate-pulse">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 z-10 animate-pulse">
           <Clock className="w-3 h-3" />
           <span>Cuenta Solicitada en Caja</span>
         </div>

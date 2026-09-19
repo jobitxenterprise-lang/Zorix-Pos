@@ -152,14 +152,14 @@ export const InvoiceHistory = () => {
                                   <td className="p-3">
                                     <div className="font-semibold text-slate-800">{inv.tableName}</div>
                                     <div className="text-slate-500 text-[10px]">Cliente: {inv.customerName}</div>
-                                    <div className="text-amber-700 font-bold text-[10px] flex items-center gap-1 mt-0.5">
+                                    <div className="text-blue-900 font-bold text-[10px] flex items-center gap-1 mt-0.5">
                                       🍹 Atendido por: {inv.waiterName || 'Mesero'}
                                     </div>
                                   </td>
                                   <td className="p-3">
                                     <div className="flex flex-col gap-1">
                                       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[10px] w-fit ${
-                                        inv.paymentMethod === 'Efectivo' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                                        inv.paymentMethod === 'Efectivo' ? 'bg-slate-200 text-slate-800' : 'bg-blue-100 text-blue-900'
                                       }`}>
                                         {inv.paymentMethod}
                                       </span>
@@ -179,7 +179,7 @@ export const InvoiceHistory = () => {
                                     <td colSpan="5" className="px-8 py-4 border-t border-slate-200">
                                       <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-wider">
                                         <span>Detalle del Consumo</span>
-                                        <span className="text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 font-extrabold">
+                                        <span className="text-blue-950 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-extrabold">
                                           🍹 Mesero: {inv.waiterName || 'Mesero'}
                                         </span>
                                       </div>

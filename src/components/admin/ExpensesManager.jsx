@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showConfirm } from '../../utils/swal';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { Wallet, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { Modal } from '../common/Modal';
@@ -19,15 +20,21 @@ export const ExpensesManager = () => {
 
   const filteredExpenses = expenses.filter(e => {
     const d = new Date(e.date);
-    return !isNaN(d.getTime()) && d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+    return !isNaN(d.getTime()) && d.getMonth() === Number(filterMonth) && d.getFullYear() === Number(filterYear);
   });
 
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
   const paidExpenses = filteredExpenses.filter(e => e.isPaid).reduce((sum, e) => sum + e.amount, 0);
   const pendingExpenses = filteredExpenses.filter(e => !e.isPaid).reduce((sum, e) => sum + e.amount, 0);
 
-  const handleDelete = (id) => {
-    if (confirm("¿Estás seguro de eliminar este gasto?")) {
+  const handleDelete = async (id) => {
+    const confirmed = await showConfirm({
+      title: "Eliminar Gasto",
+      text: "¿Estás seguro de eliminar este gasto?",
+      confirmButtonText: "Sí, eliminar",
+      icon: "warning"
+    });
+    if (confirmed) {
       deleteExpense(id);
     }
   };
@@ -121,7 +128,7 @@ export const ExpensesManager = () => {
                     <td className="p-3">
                       <div className="font-semibold text-slate-900">{expense.description}</div>
                       {expense.notificationDate && (
-                        <div className="text-[10px] text-amber-600 font-bold mt-0.5 flex items-center gap-1">
+                        <div className="text-[10px] text-blue-700 font-bold mt-0.5 flex items-center gap-1">
                           <Clock className="w-3 h-3" /> Aviso: {new Date(expense.notificationDate).toLocaleDateString()}
                         </div>
                       )}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash2, User, MapPin } from 'lucide-react';
 import { MdTableRestaurant, MdLocalBar } from "react-icons/md";
 import { useBar } from '../../context/BarContext';
+import { showConfirm } from '../../utils/swal';
 
 export const TableCard = ({ table, onClick }) => {
   const { deleteTable, currentRole, currentUser } = useBar();
@@ -12,12 +13,11 @@ export const TableCard = ({ table, onClick }) => {
   const isPendingPayment = table.status === 'pendiente_pago';
   const isBar = table.isBar;
 
-  let statusBadgeText = isBar ? 'Barra' : isPendingPayment ? 'En Caja' : 'Ocupada';
   let statusBadgeStyle = isPendingPayment 
-    ? 'bg-amber-100 text-amber-900 border-amber-300' 
+    ? 'bg-blue-100 text-blue-950 border-blue-300' 
     : isBar 
-    ? 'bg-blue-100 text-blue-900 border-blue-300' 
-    : 'bg-emerald-100 text-emerald-900 border-emerald-300';
+    ? 'bg-slate-100 text-slate-800 border-slate-300' 
+    : 'bg-blue-600 text-white border-blue-700';
 
   return (
     <div
@@ -54,9 +54,15 @@ export const TableCard = ({ table, onClick }) => {
 
         {!isMesero && !isLockedForWaiter && (
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation();
-              if (confirm(`¿Deseas cerrar o eliminar la ${table.name}?`)) {
+              const confirmed = await showConfirm({
+                title: "Eliminar Mesa",
+                text: `¿Deseas cerrar o eliminar la ${table.name}?`,
+                confirmButtonText: "Sí, eliminar",
+                icon: "warning"
+              });
+              if (confirmed) {
                 deleteTable(table.id);
               }
             }}

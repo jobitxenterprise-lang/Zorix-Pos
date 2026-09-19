@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showConfirm } from '../../utils/swal';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { Plus, Edit2, Trash2, Package } from 'lucide-react';
 import { Modal } from '../common/Modal';
@@ -25,8 +26,14 @@ export const CatalogManager = () => {
     setImagePreview(null);
   };
 
-  const handleDelete = (id, name) => {
-    if (confirm(`¿Estás seguro de eliminar el producto "${name}" del catálogo?`)) {
+  const handleDelete = async (id, name) => {
+    const confirmed = await showConfirm({
+      title: "Eliminar Producto",
+      text: `¿Estás seguro de eliminar el producto "${name}" del catálogo?`,
+      confirmButtonText: "Sí, eliminar",
+      icon: "warning"
+    });
+    if (confirmed) {
       deleteProduct(id);
     }
   };
@@ -199,7 +206,7 @@ export const CatalogManager = () => {
                   {priceNum > 0 && costNum >= 0 && (
                     <div className="bg-slate-50 border border-slate-200 p-2 rounded-lg flex justify-between items-center text-xs">
                       <span className="font-semibold text-slate-600">Margen de Ganancia:</span>
-                      <span className={`font-bold px-2 py-0.5 rounded ${margin >= 30 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                      <span className={`font-bold px-2 py-0.5 rounded ${margin >= 30 ? 'bg-blue-100 text-blue-900' : 'bg-slate-200 text-slate-800'}`}>
                         {margin.toFixed(1)}% (C${(priceNum - costNum).toFixed(2)})
                       </span>
                     </div>
@@ -256,7 +263,7 @@ export const CatalogManager = () => {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="flex-1 bg-black text-yellow-500 font-bold py-2 rounded-lg font-serif text-sm hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 transition-colors"
+                      className="flex-1 bg-blue-600 text-white font-bold py-2 rounded-lg text-sm hover:bg-blue-700 cursor-pointer shadow-sm flex items-center justify-center gap-2 transition-colors"
                     >
                       {editingProduct ? <Edit2 className="w-4 h-4"/> : <Plus className="w-4 h-4" />}
                       {editingProduct ? 'Guardar' : 'Agregar'}
@@ -279,7 +286,7 @@ export const CatalogManager = () => {
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-t-xl transition-all shrink-0 cursor-pointer ${
                 selectedCategory === cat.id
-                  ? 'bg-black text-yellow-500 border-t border-l border-r border-slate-200'
+                  ? 'bg-blue-950 text-white border-t border-l border-r border-blue-950'
                   : 'bg-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -292,7 +299,7 @@ export const CatalogManager = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-black text-yellow-500 border-b border-slate-200 text-[10px] uppercase font-bold">
+                <tr className="bg-blue-950 text-white border-b border-slate-200 text-[10px] uppercase font-bold">
                   <th className="p-3 pl-4">Producto</th>
                   <th className="p-3">Precio</th>
                   <th className="p-3">Stock</th>
@@ -312,7 +319,7 @@ export const CatalogManager = () => {
                     <td className="p-3">
                       {product.stock !== null ? (
                         <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-                          product.stock < 10 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                          product.stock < 10 ? 'bg-blue-100 text-blue-900' : 'bg-slate-100 text-slate-700'
                         }`}>
                           {product.stock} un.
                         </span>

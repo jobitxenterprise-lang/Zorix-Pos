@@ -32,14 +32,14 @@ export const PendingBills = () => {
             Cuentas enviadas por los meseros listas para emitir factura y cancelar pago.
           </p>
         </div>
-        <span className="bg-amber-100 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-full border border-amber-300">
+        <span className="bg-blue-100 text-blue-950 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-300">
           {pendingTables.length} Pendientes de Cobro
         </span>
       </div>
 
       {pendingTables.length === 0 ? (
         <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-slate-400">
-          <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+          <CheckCircle2 className="w-12 h-12 text-blue-600 mx-auto mb-3" />
           <h3 className="text-base font-bold text-slate-700 m-0">No hay cuentas pendientes por cobrar</h3>
           <p className="text-xs mt-1 text-slate-500">
             Cuando un mesero presione "Enviar Pedido a Caja", la factura aparecerá en esta sección para ser cancelada.
@@ -61,7 +61,7 @@ export const PendingBills = () => {
                       <span>{table.customerName}</span>
                     </div>
                   </div>
-                  <span className="bg-amber-500 text-slate-900 text-xs font-extrabold px-2.5 py-1 rounded">
+                  <span className="bg-blue-600 text-white text-xs font-extrabold px-2.5 py-1 rounded">
                     Por Pagar
                   </span>
                 </div>

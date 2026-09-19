@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showInputPrompt } from '../../utils/swal';
 import { TableCard } from './TableCard';
 import { OrderModal } from './OrderModal';
 import { OpenTableModal } from '../common/OpenTableModal';
@@ -37,7 +38,7 @@ export const TableGrid = () => {
             <div className="flex items-center gap-2.5 ml-auto shrink-0">
               <button
                 onClick={async () => {
-                  const customerName = prompt("Ingresa el nombre del cliente en barra:");
+                  const customerName = await showInputPrompt({ title: "Nueva Cuenta en Barra", text: "Ingresa el nombre del cliente:", required: true });
                   if (customerName) {
                     const newId = await addBarAccount(customerName);
                     if (newId) {

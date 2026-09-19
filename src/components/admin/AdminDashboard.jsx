@@ -50,8 +50,8 @@ export const AdminDashboard = () => {
         {/* Tasa de Cambio */}
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-center gap-3">
           <div className="flex items-center gap-2">
-            <DollarIcon className="w-5 h-5 text-yellow-500" />
-            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Tasa de Cambio</p>
+            <DollarIcon className="w-5 h-5 text-blue-400" />
+            <p className="text-[14px] font-semibold text-blue-400 uppercase tracking-wider m-0">Tasa de Cambio</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-400 font-bold">C$</span>
@@ -60,7 +60,7 @@ export const AdminDashboard = () => {
               value={exchangeRate || ''}
               onChange={(e) => updateExchangeRate(e.target.value)}
               step="0.01"
-              className="w-full bg-slate-800 text-white font-bold px-3 py-1.5 rounded border border-slate-700 focus:outline-none focus:border-yellow-500 transition-colors"
+              className="w-full bg-slate-800 text-white font-bold px-3 py-1.5 rounded border border-slate-700 focus:outline-none focus:border-blue-400 transition-colors"
               placeholder="Ej. 36.62"
             />
           </div>
@@ -68,11 +68,11 @@ export const AdminDashboard = () => {
 
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="text-yellow-500 p-3">
-              <DollarSign className="w-6 h-6 text-yellow-500" />
+            <div className="text-blue-400 p-3">
+              <DollarSign className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Ventas Históricas</p>
+              <p className="text-[14px] font-semibold text-blue-400 uppercase tracking-wider m-0">Ventas Históricas</p>
               <h3 className="text-xl font-extrabold text-white m-0">
                 {isHistoryLoading && cashRegisterHistory.length === 0 ? 'Cargando...' : `C$${totalHistoricalSales.toFixed(2)}`}
               </h3>
@@ -81,19 +81,19 @@ export const AdminDashboard = () => {
           <button
             onClick={() => loadShiftHistory(true)}
             disabled={isHistoryLoading}
-            className="p-2 text-slate-400 hover:text-yellow-400 transition-colors disabled:opacity-50 cursor-pointer"
+            className="p-2 text-slate-400 hover:text-blue-300 transition-colors disabled:opacity-50 cursor-pointer"
             title="Recargar historial"
           >
-            <RefreshCcw className={`w-4 h-4 ${isHistoryLoading ? 'animate-spin text-yellow-400' : ''}`} />
+            <RefreshCcw className={`w-4 h-4 ${isHistoryLoading ? 'animate-spin text-blue-300' : ''}`} />
           </button>
         </div>
 
         <div className="bg-slate-900 p-5 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className="text-yellow-500 p-3">
-            <Users className="w-6 h-6 text-yellow-500" />
+          <div className="text-blue-400 p-3">
+            <Users className="w-6 h-6 text-blue-400" />
           </div>
           <div>
-            <p className="text-[14px] font-semibold text-yellow-500 uppercase tracking-wider m-0">Personal Activo</p>
+            <p className="text-[14px] font-semibold text-blue-400 uppercase tracking-wider m-0">Personal Activo</p>
             <h3 className="text-xl font-extrabold text-white m-0">{users.length} usuarios</h3>
           </div>
         </div>
@@ -137,7 +137,7 @@ export const AdminDashboard = () => {
               <h3 className="text-sm font-bold text-slate-800 m-0">
                 Productos por Agotarse (Inventario Crítico)
               </h3>
-              <span className="text-xs text-amber-600 font-semibold bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full self-start sm:self-auto">
+              <span className="text-xs text-blue-950 font-semibold bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full self-start sm:self-auto">
                 {lowStockProducts.length} productos bajo su límite
               </span>
             </div>
@@ -149,12 +149,12 @@ export const AdminDashboard = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                 {displayedProducts.map(prod => (
-                  <div key={prod.id} className="bg-amber-50/80 hover:bg-amber-50 border border-amber-200/90 p-3.5 rounded-xl flex justify-between items-center text-xs transition-colors">
+                  <div key={prod.id} className="bg-blue-50/80 hover:bg-blue-50 border border-blue-200/90 p-3.5 rounded-xl flex justify-between items-center text-xs transition-colors">
                     <div className="pr-2 truncate">
-                      <h4 className="font-bold text-amber-950 m-0 truncate">{prod.name}</h4>
-                      <p className="text-amber-700 text-[11px] m-0 mt-0.5 capitalize">Categoría: {prod.category}</p>
+                      <h4 className="font-bold text-blue-950 m-0 truncate">{prod.name}</h4>
+                      <p className="text-blue-800 text-[11px] m-0 mt-0.5 capitalize">Categoría: {prod.category}</p>
                     </div>
-                    <span className="bg-amber-600 text-white font-black px-2.5 py-1 rounded-lg shrink-0 text-xs shadow-2xs">
+                    <span className="bg-blue-600 text-white font-black px-2.5 py-1 rounded-lg shrink-0 text-xs shadow-2xs">
                       Stock: {prod.stock}
                     </span>
                   </div>

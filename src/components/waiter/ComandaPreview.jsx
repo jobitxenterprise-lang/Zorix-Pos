@@ -62,7 +62,7 @@ export const ComandaPreview = ({ table, items, waiterName, onClose }) => {
             </button>
             <button
               onClick={handlePrint}
-              className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+              className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
             >
               <Printer className="w-5 h-5" /> Imprimir
             </button>

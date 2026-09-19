@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showConfirm } from '../../utils/swal';
 import { Users, UserPlus, Shield, UserCheck, Trash2, Edit2, Key, X } from 'lucide-react';
 
 export const UserManager = () => {
@@ -14,41 +15,53 @@ export const UserManager = () => {
     role: 'mesero'
   });
 
-  const handleOpenCreate = () => {
-    setEditingUser(null);
-    setFormData({ name: '', username: '', password: '', role: 'mesero' });
-    setShowModal(true);
-  };
-
-  const handleOpenEdit = (user) => {
-    setEditingUser(user);
-    setFormData({ name: user.name, username: user.username, password: user.password || '', role: user.role });
+  const handleOpenModal = (user = null) => {
+    if (user) {
+      setEditingUser(user);
+      setFormData({
+        name: user.name,
+        username: user.username,
+        password: '',
+        role: user.role
+      });
+    } else {
+      setEditingUser(null);
+      setFormData({
+        name: '',
+        username: '',
+        password: '',
+        role: 'mesero'
+      });
+    }
     setShowModal(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
-
-    let finalData = { ...formData };
-    if (finalData.role === 'mesero' || finalData.role === 'cajero') {
-       if (!finalData.username.trim()) {
-         finalData.username = `${finalData.role}_${Date.now().toString().slice(-4)}`;
-       }
-    } else {
-       if (!finalData.username.trim()) return;
-    }
+    if (!formData.name || !formData.username) return;
 
     if (editingUser) {
-      updateUser({ ...editingUser, ...finalData });
+      const updatedData = { ...formData, id: editingUser.id };
+      if (!formData.password) {
+        delete updatedData.password;
+      }
+      updateUser(updatedData);
     } else {
+      if (!formData.password) return;
+      const finalData = { ...formData, active: true };
       addUser(finalData);
     }
     setShowModal(false);
   };
 
-  const handleDelete = (user) => {
-    if (confirm(`¿Estás seguro de eliminar al usuario "${user.name}"?`)) {
+  const handleDelete = async (user) => {
+    const confirmed = await showConfirm({
+      title: "Eliminar Usuario",
+      text: `¿Estás seguro de eliminar al usuario "${user.name}"?`,
+      confirmButtonText: "Sí, eliminar",
+      icon: "warning"
+    });
+    if (confirmed) {
       deleteUser(user.id);
     }
   };

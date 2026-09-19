@@ -368,7 +368,7 @@ export const AdminShiftHistory = () => {
                               </div>
                               <div className="col-span-2 sm:col-span-1">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase m-0">Venta Total</p>
-                                <p className="text-base sm:text-lg font-black text-yellow-400 m-0">C${shift.totalSales.toFixed(2)}</p>
+                                <p className="text-base sm:text-lg font-black text-blue-300 m-0">C${shift.totalSales.toFixed(2)}</p>
                               </div>
                             </div>
 
@@ -385,7 +385,7 @@ export const AdminShiftHistory = () => {
                                   shiftId: shift.id,
                                 });
                               }}
-                              className="px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 w-full sm:w-auto"
+                              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 w-full sm:w-auto"
                             >
                               <Printer className="w-4 h-4" />
                               Imprimir Ticket Corte Z

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showAlert } from '../../utils/swal';
 import { X, DollarSign, CreditCard, Banknote, ArrowRight, Receipt } from 'lucide-react';
 import { InvoicePreview } from '../waiter/InvoicePreview';
 
@@ -32,10 +33,16 @@ export const PaymentModal = ({ table, onClose }) => {
 
   const handleConfirm = () => {
     if (paymentMethod === 'Efectivo') {
-      if (numericReceived <= 0) return alert('Debes ingresar el monto con el que está pagando el cliente.');
-      if (missingAmount > 0) return alert(`El monto ingresado no cubre el total. Faltan ${currency === 'NIO' ? 'C$' : 'U$'}${missingAmount.toFixed(2)}`);
+      if (numericReceived <= 0) {
+        return showAlert({ title: "Monto Requerido", text: "Debes ingresar el monto con el que está pagando el cliente.", icon: "warning" });
+      }
+      if (missingAmount > 0) {
+        return showAlert({ title: "Monto Insuficiente", text: `El monto ingresado no cubre el total. Faltan ${currency === 'NIO' ? 'C$' : 'U$'}${missingAmount.toFixed(2)}`, icon: "warning" });
+      }
     } else {
-      if (!referenceNumber.trim()) return alert('Debes ingresar el código de referencia o voucher.');
+      if (!referenceNumber.trim()) {
+        return showAlert({ title: "Voucher Requerido", text: "Debes ingresar el código de referencia o voucher.", icon: "warning" });
+      }
     }
 
     const paymentDetails = {

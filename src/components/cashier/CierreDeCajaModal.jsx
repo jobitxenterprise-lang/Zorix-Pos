@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useBar } from '../../context/BarContext';
+import { showSuccess } from '../../utils/swal';
 import { printShiftCloseReceipt } from '../../utils/printShiftReceipt';
 import { 
   X, 
@@ -144,7 +145,7 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
 
       if (onShiftClosed) onShiftClosed();
       onClose();
-      alert('¡Turno cerrado con éxito! Se ha generado un nuevo turno limpio en sistema.');
+      showSuccess('¡Turno cerrado con éxito!', 'Se ha generado un nuevo turno limpio en el sistema.');
     } catch (err) {
       console.error('Error al cerrar turno:', err);
       setErrorMsg(err?.message || 'Ocurrió un error inesperado al cerrar la caja.');
@@ -332,11 +333,11 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                 )}
 
                 {isSobrante && (
-                  <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl flex items-center gap-3 shadow-xs">
-                    <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
+                  <div className="p-3.5 bg-blue-50 border border-blue-200 text-blue-950 rounded-xl flex items-center gap-3 shadow-xs">
+                    <AlertTriangle className="w-6 h-6 text-blue-700 shrink-0" />
                     <div>
                       <span className="font-extrabold text-xs block uppercase">Sobrante de Efectivo</span>
-                      <span className="text-sm font-black text-amber-700 block">+C${difference.toFixed(2)}</span>
+                      <span className="text-sm font-black text-blue-900 block">+C${difference.toFixed(2)}</span>
                     </div>
                   </div>
                 )}
