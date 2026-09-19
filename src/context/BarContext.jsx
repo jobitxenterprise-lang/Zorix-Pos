@@ -232,7 +232,7 @@ export const BarProvider = ({ children }) => {
         for (const dbTable of tablesData) {
           const sId = String(dbTable.id);
           const pending = pendingSyncTablesRef.current.get(sId);
-          if (pending && pending.isDeleted && Date.now() - pending.timestamp < 300000) {
+          if (pending && pending.isDeleted) {
             continue; // Ignorar mesas que fueron cobradas o canceladas localmente
           }
 
@@ -490,6 +490,12 @@ export const BarProvider = ({ children }) => {
           const sId = String(raw.id);
 
           const pending = pendingSyncTablesRef.current.get(sId);
+          // SI LA MESA FUE ELIMINADA O SU ESTADO ES LIBRE, IGNORAR Y DESCHARTAR DE PANTALLA
+          if (pending?.isDeleted || raw.status === "libre") {
+            setTables((prev) => prev.filter((t) => String(t.id) !== sId));
+            return;
+          }
+
           if (pending && !pending.isDeleted && Date.now() - pending.timestamp < 3000) {
             return;
           }
@@ -704,8 +710,25 @@ export const BarProvider = ({ children }) => {
     }
   }, [currentRole, historyLoaded, isHistoryLoading, loadShiftHistory]);
 
+  // Función auxiliar de purga limpia de timers por mesa
+  const purgeTableTimersAndWrites = (sTableId) => {
+    if (updateOrderDebounceTimersRef.current.has(sTableId)) {
+      clearTimeout(updateOrderDebounceTimersRef.current.get(sTableId));
+      updateOrderDebounceTimersRef.current.delete(sTableId);
+    }
+    latestPendingWriteRef.current.delete(sTableId);
+    inFlightWritesRef.current.delete(sTableId);
+  };
+
   // Función serializada que ejecuta la escritura a Supabase de forma atómica y ordenada
   const performTableWrite = async (sTableId) => {
+    // ABORT GUARD: Si la mesa fue cobrada o eliminada localmente, abortar la escritura inmediatamente
+    const pendingShield = pendingSyncTablesRef.current.get(sTableId);
+    if (pendingShield?.isDeleted) {
+      purgeTableTimersAndWrites(sTableId);
+      return;
+    }
+
     const dataToWrite = latestPendingWriteRef.current.get(sTableId);
     if (!dataToWrite) return;
 
@@ -1107,6 +1130,7 @@ export const BarProvider = ({ children }) => {
     }
     try {
       const sTableId = String(tableId);
+      purgeTableTimersAndWrites(sTableId);
       await supabase.from("orders").delete().eq("table_id", sTableId);
       const { error } = await supabase.from("tables").delete().eq("id", sTableId);
       if (error) {
@@ -1166,6 +1190,7 @@ export const BarProvider = ({ children }) => {
       return;
     }
     const sTableId = String(tableId);
+    purgeTableTimersAndWrites(sTableId);
     
     // IMPORTANTE: Actualizar el escudo a estado "libre" y vacío, en lugar de borrarlo.
     // Así, cuando vuelva el internet, la mesa no parpadeará como "ocupada" mientras la cola se sincroniza.
@@ -1618,6 +1643,7 @@ export const BarProvider = ({ children }) => {
       return;
     }
     const sTableId = String(tableId);
+    purgeTableTimersAndWrites(sTableId);
 
     // OPTIMISTIC LOCAL UPDATE
     setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
