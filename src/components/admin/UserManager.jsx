@@ -91,7 +91,7 @@ export const UserManager = () => {
           </p>
         </div>
         <button
-          onClick={handleOpenCreate}
+          onClick={() => handleOpenModal()}
           className="flex items-center gap-2 px-4 py-2.5 bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
         >
           <UserPlus className="w-4 h-4 text-white" />
@@ -128,7 +128,7 @@ export const UserManager = () => {
                     <td className="p-4">{getRoleBadge(user.role)}</td>
                     <td className="p-4 text-right space-x-2">
                       <button
-                        onClick={() => handleOpenEdit(user)}
+                        onClick={() => handleOpenModal(user)}
                         className="p-1.5 text-slate-500 hover:text-blue-950 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                         title="Editar usuario"
                       >
