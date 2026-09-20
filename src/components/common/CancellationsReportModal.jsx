@@ -62,19 +62,19 @@ export const CancellationsReportModal = ({ isOpen, onClose }) => {
       case 'REDUCCION_CANTIDAD':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-            📉 Reducción
+             Reducción
           </span>
         );
       case 'ELIMINACION_PRODUCTO':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
-            🗑️ Eliminación
+             Eliminación
           </span>
         );
       case 'CANCELACION_MESA':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-800 border border-red-200">
-            🚫 Canc. Mesa
+             Canc. Mesa
           </span>
         );
       default:

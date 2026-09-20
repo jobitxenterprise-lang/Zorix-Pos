@@ -58,19 +58,19 @@ export const CancellationsReportView = () => {
       case 'REDUCCION_CANTIDAD':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-            📉 Reducción
+            Reducción
           </span>
         );
       case 'ELIMINACION_PRODUCTO':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
-            🗑️ Eliminación
+             Eliminación
           </span>
         );
       case 'CANCELACION_MESA':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-800 border border-red-200">
-            🚫 Canc. Mesa
+             Canc. Mesa
           </span>
         );
       default:
@@ -83,18 +83,14 @@ export const CancellationsReportView = () => {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col w-full">
+    <div className="bg-white border border-slate-200  shadow-sm overflow-hidden flex flex-col w-full">
       {/* Header de la Vista */}
       <div className="p-5 bg-blue-950 text-white flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-900/80 rounded-xl border border-blue-800 text-amber-400">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
+          
           <div>
-            <h2 className="text-xl font-bold m-0 tracking-tight">Historial de Auditoría de Anulaciones</h2>
-            <p className="text-xs text-blue-200 m-0 mt-0.5">
-              Registro inmutable de reducciones, eliminaciones de ítems y cancelaciones de mesas
-            </p>
+            <h2 className="text-xl font-bold m-0 tracking-tight r">Historial de Auditoría de Anulaciones</h2>
+            
           </div>
         </div>
 

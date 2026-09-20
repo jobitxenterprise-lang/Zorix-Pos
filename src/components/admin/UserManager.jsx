@@ -70,6 +70,8 @@ export const UserManager = () => {
     switch (role) {
       case 'admin':
         return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-purple-100 text-purple-800"><Shield className="w-3 h-3" /> Administrador</span>;
+      case 'super_cajero':
+        return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-200"><Shield className="w-3 h-3 text-amber-600" /> Super Cajero</span>;
       case 'cajero':
         return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800"><Key className="w-3 h-3" /> Cajero</span>;
       default:
@@ -212,6 +214,7 @@ export const UserManager = () => {
                 >
                   <option value="mesero">Mesero (Atención de mesas)</option>
                   <option value="cajero">Cajero (Cobro y Caja)</option>
+                  <option value="super_cajero">Super Cajero (Cobro, Caja y Canc. Mesas)</option>
                   <option value="admin">Administrador (Control Total)</option>
                 </select>
               </div>
