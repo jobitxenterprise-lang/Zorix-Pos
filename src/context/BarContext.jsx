@@ -749,6 +749,8 @@ export const BarProvider = ({ children }) => {
         targetTable,
         orderVersion,
         writeId,
+        actionId: providedActionId,
+        reason: providedReason,
       } = dataToWrite;
 
       try {
@@ -765,7 +767,8 @@ export const BarProvider = ({ children }) => {
               )
             : true,
         }));
-        const actionId = writeData.actionId || ("act_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9));
+        const actionId = providedActionId || ("act_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9));
+        const effectiveReason = providedReason || "Modificación de comanda";
         const { data, error } = await supabase.rpc("save_table_order_audited", {
           p_table_id: sTableId,
           p_expected_version: orderVersion,
@@ -781,7 +784,7 @@ export const BarProvider = ({ children }) => {
           p_items: orderItems,
           p_user_id: currentUser?.id,
           p_action_id: actionId,
-          p_reason: writeData.reason || "Modificación de comanda",
+          p_reason: effectiveReason,
         });
         if (error) throw error;
 
@@ -832,7 +835,7 @@ export const BarProvider = ({ children }) => {
             expectedVersion: orderVersion,
             userId: currentUser?.id,
             actionId: actionId || ("act_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)),
-            reason: writeData.reason || "Modificación de comanda",
+            reason: providedReason || "Modificación de comanda",
           });
           setPendingSyncCount(getOfflineQueue().length);
           return;
