@@ -6,6 +6,7 @@ import {
   X, 
   Banknote, 
   DollarSign, 
+  CreditCard,
   CheckCircle, 
   AlertTriangle, 
   Lock, 
@@ -36,6 +37,9 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
 
   // Estado de monto directo en Dólares ($ USD)
   const [usdAmount, setUsdAmount] = useState('');
+
+  // Estado de monto directo de Vouchers de Tarjetas (C$ POS)
+  const [cardAmount, setCardAmount] = useState('');
   
   // Notas / Justificación de Descuadre
   const [notes, setNotes] = useState('');
@@ -76,11 +80,17 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
   const countedUsdInNio = countedUsdValue * (Number(exchangeRate) || 36.62);
   const totalPhysicalCash = countedNioFromBills + countedUsdInNio;
 
-  // 3. Diferencia y Cuadre
-  const difference = totalPhysicalCash - expectedCashSystem;
-  const isExactMatch = Math.abs(difference) < 0.01;
-  const isFaltante = difference < -0.01;
-  const isSobrante = difference > 0.01;
+  const countedCardValue = Number(cardAmount) || 0;
+  const totalPhysicalDeclared = totalPhysicalCash + countedCardValue;
+
+  // 3. Diferencias y Cuadre por Método de Pago
+  const cashDifference = totalPhysicalCash - expectedCashSystem;
+  const cardDifference = countedCardValue - totalCardSystem;
+  const netDifference = totalPhysicalDeclared - totalSalesSystem;
+
+  const isExactMatch = Math.abs(cashDifference) < 0.01 && Math.abs(cardDifference) < 0.01;
+  const isFaltante = netDifference < -0.01 || cashDifference < -0.01 || cardDifference < -0.01;
+  const isSobrante = (netDifference > 0.01 || cashDifference > 0.01 || cardDifference > 0.01) && !isFaltante;
 
   if (!isOpen) return null;
 
@@ -92,6 +102,7 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
   const handleResetCounts = () => {
     setCounts(DENOMINATIONS.reduce((acc, denom) => ({ ...acc, [denom]: '' }), {}));
     setUsdAmount('');
+    setCardAmount('');
     setNotes('');
     setErrorMsg('');
   };
@@ -131,7 +142,14 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
         countedUsdInNio,
         totalPhysicalCash,
         expectedCashSystem,
-        difference,
+        cashDifference,
+        cardPhysicalAmount: countedCardValue,
+        expectedCardSystem: totalCardSystem,
+        cardDifference,
+        totalPhysicalDeclared,
+        totalSalesSystem,
+        netDifference,
+        difference: cashDifference,
       };
 
       // 3. Persistir en Supabase
@@ -272,6 +290,34 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                 </div>
               </div>
             </div>
+
+            {/* Campo para Vouchers / Bauchers de Tarjetas (POS) */}
+            <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl border border-blue-200">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-sm font-extrabold text-slate-800 block">Total Vouchers / Bauchers (Tarjeta)</span>
+                  <span className="text-xs text-slate-500 font-medium">Monto total de bauchers en físico (POS)</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <div className="relative w-36">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-600 font-extrabold text-base">C$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={cardAmount}
+                    onChange={(e) => setCardAmount(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2.5 bg-white border-2 border-slate-300 focus:border-blue-600 rounded-xl font-extrabold text-slate-900 text-base text-right focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Columna Derecha: Resumen Financiero y Cuadre (5 Cols / 12) */}
@@ -289,8 +335,12 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                   <span className="font-extrabold text-slate-900">{totalInvoicesCount}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span>Ventas en Tarjeta / Otros:</span>
+                  <span>Ventas Tarjeta (Sistema):</span>
                   <span className="font-extrabold text-blue-600">C${totalCardSystem.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span>Vouchers Tarjeta (Físico):</span>
+                  <span className="font-extrabold text-blue-800">C${countedCardValue.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-600">
                   <span>Ventas Totales del Turno:</span>
@@ -304,10 +354,15 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
 
               {/* Total Físico Reportado */}
               <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-1">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Físico Contado:</span>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Físico Contado (Efectivo):</span>
                 <span className="text-2xl font-black text-emerald-600 block">
                   C${totalPhysicalCash.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
+                {countedCardValue > 0 && (
+                  <span className="text-xs font-extrabold text-blue-900 block pt-1 border-t border-slate-100">
+                    + C${countedCardValue.toFixed(2)} en Tarjetas (Total Declarado: C${totalPhysicalDeclared.toFixed(2)})
+                  </span>
+                )}
               </div>
 
               {/* Badges de Cuadre / Descuadre */}
@@ -317,28 +372,46 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                     <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0" />
                     <div>
                       <span className="font-extrabold text-xs block uppercase">Caja Cuadrada Exacta</span>
-                      <span className="text-[11px] text-emerald-700">El efectivo físico coincide perfectamente con el sistema.</span>
+                      <span className="text-[11px] text-emerald-700">Tanto el efectivo como las tarjetas coinciden con el sistema.</span>
                     </div>
                   </div>
                 )}
 
                 {isFaltante && (
-                  <div className="p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-xl flex items-center gap-3 shadow-xs">
-                    <AlertTriangle className="w-6 h-6 text-red-600 shrink-0" />
-                    <div>
-                      <span className="font-extrabold text-xs block uppercase">Faltante de Efectivo</span>
-                      <span className="text-sm font-black text-red-700 block">C${Math.abs(difference).toFixed(2)}</span>
+                  <div className="p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-xl flex flex-col gap-1 shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                      <span className="font-extrabold text-xs uppercase">Faltante Detectado</span>
                     </div>
+                    {cashDifference < -0.01 && (
+                      <span className="text-xs font-bold text-red-700 block">
+                        • Faltante en Efectivo: C${Math.abs(cashDifference).toFixed(2)}
+                      </span>
+                    )}
+                    {cardDifference < -0.01 && (
+                      <span className="text-xs font-bold text-red-700 block">
+                        • Faltante en Tarjetas: C${Math.abs(cardDifference).toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 )}
 
                 {isSobrante && (
-                  <div className="p-3.5 bg-blue-50 border border-blue-200 text-blue-950 rounded-xl flex items-center gap-3 shadow-xs">
-                    <AlertTriangle className="w-6 h-6 text-blue-700 shrink-0" />
-                    <div>
-                      <span className="font-extrabold text-xs block uppercase">Sobrante de Efectivo</span>
-                      <span className="text-sm font-black text-blue-900 block">+C${difference.toFixed(2)}</span>
+                  <div className="p-3.5 bg-blue-50 border border-blue-200 text-blue-950 rounded-xl flex flex-col gap-1 shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-blue-700 shrink-0" />
+                      <span className="font-extrabold text-xs uppercase">Sobrante Detectado</span>
                     </div>
+                    {cashDifference > 0.01 && (
+                      <span className="text-xs font-bold text-blue-900 block">
+                        • Sobrante en Efectivo: +C${cashDifference.toFixed(2)}
+                      </span>
+                    )}
+                    {cardDifference > 0.01 && (
+                      <span className="text-xs font-bold text-blue-900 block">
+                        • Sobrante en Tarjetas: +C${cardDifference.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
