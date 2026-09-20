@@ -23,7 +23,13 @@ export const printShiftCloseReceipt = ({
   const totalSales = totalCash + totalCard;
 
   const totalCashExpenses = (expenses || [])
-    .filter((e) => e && e.isPaid !== false && (e.paymentMethod === "Efectivo" || !e.paymentMethod))
+    .filter(
+      (e) =>
+        e &&
+        e.isPaid !== false &&
+        (e.paymentMethod === "Efectivo" || !e.paymentMethod) &&
+        (!shiftId || String(e.shiftId) === String(shiftId))
+    )
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
   const expectedCash = totalCash - totalCashExpenses;

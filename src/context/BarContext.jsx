@@ -382,10 +382,10 @@ export const BarProvider = ({ children }) => {
         setPaidInvoices([]);
       }
 
-      // 3. Fetch Expenses acotados (solo del turno activo, o últimas 24h si no hay turno)
+      // 3. Fetch Expenses (gastos del turno activo + gastos globales de admin sin turno)
       let expensesQuery = supabase.from("expenses").select("*");
       if (activeShift) {
-        expensesQuery = expensesQuery.eq("shift_id", activeShift.id);
+        expensesQuery = expensesQuery.or(`shift_id.eq.${activeShift.id},shift_id.is.null`);
       } else {
         const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         expensesQuery = expensesQuery.gte("created_at", since24h);
@@ -1443,9 +1443,22 @@ export const BarProvider = ({ children }) => {
   } = {}) => {
     if (!currentShiftId && paidInvoices.length === 0) return;
     const shiftTotal = paidInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
-    const totalCashExpected = paidInvoices
+    const rawCashSales = paidInvoices
       .filter((inv) => inv.paymentMethod === "Efectivo")
       .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+
+    const shiftCashExpenses = expenses
+      .filter(
+        (e) =>
+          e &&
+          e.isPaid !== false &&
+          (e.paymentMethod === "Efectivo" || !e.paymentMethod) &&
+          e.shiftId &&
+          String(e.shiftId) === String(currentShiftId)
+      )
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+    const totalCashExpected = rawCashSales - shiftCashExpenses;
 
     const actualCountedCash = totalRealCounted !== null && totalRealCounted !== undefined
       ? Number(totalRealCounted)
@@ -1733,14 +1746,16 @@ export const BarProvider = ({ children }) => {
     fetchData();
   };
 
-  const addExpense = async (newExpense) => {
-    if (!currentShiftId && (currentRole === "cajero" || currentUser?.role === "cajero")) {
-      showError("Turno No Disponible", "Debes tener un turno de caja activo para poder registrar gastos.");
+  const addExpense = async (newExpense, isCashierMode = false) => {
+    const isCashier = isCashierMode || currentRole === "cajero" || currentUser?.role === "cajero";
+    if (isCashier && !currentShiftId) {
+      showError("Turno No Disponible", "Debes tener un turno de caja activo para poder registrar gastos de caja.");
       return;
     }
     try {
+      const targetShiftId = isCashier ? currentShiftId : (newExpense.shiftId || null);
       const { error } = await supabase.from("expenses").insert({
-        shift_id: currentShiftId || null,
+        shift_id: targetShiftId,
         description: newExpense.description,
         category: newExpense.category,
         amount: Number(newExpense.amount),

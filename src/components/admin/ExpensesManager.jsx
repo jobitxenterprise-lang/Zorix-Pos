@@ -6,10 +6,13 @@ import { Wallet, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { Modal } from '../common/Modal';
 
 export const ExpensesManager = ({ mode = "admin" }) => {
-  const { expenses, addExpense, updateExpense, deleteExpense, currentShiftId } = useBar();
+  const { expenses, addExpense, updateExpense, deleteExpense, currentShiftId, currentRole, currentUser } = useBar();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+
+  const userRole = currentRole || currentUser?.role;
+  const isSuperOrAdmin = ["super_cajero", "admin"].includes(userRole);
 
   const categories = [
     { id: 'compras', label: 'Compras / Mercadería' },
@@ -20,7 +23,7 @@ export const ExpensesManager = ({ mode = "admin" }) => {
 
   const filteredExpenses = expenses.filter(e => {
     if (mode === "cashier") {
-      return String(e.shiftId) === String(currentShiftId) || !e.shiftId;
+      return e.shiftId && String(e.shiftId) === String(currentShiftId);
     }
     const d = new Date(e.date);
     return !isNaN(d.getTime()) && d.getMonth() === Number(filterMonth) && d.getFullYear() === Number(filterYear);
@@ -31,6 +34,7 @@ export const ExpensesManager = ({ mode = "admin" }) => {
   const pendingExpenses = filteredExpenses.filter(e => !e.isPaid).reduce((sum, e) => sum + e.amount, 0);
 
   const handleDelete = async (id) => {
+    if (mode === "cashier" && !isSuperOrAdmin) return;
     const confirmed = await showConfirm({
       title: "Eliminar Gasto",
       text: "¿Estás seguro de eliminar este gasto?",
@@ -43,6 +47,7 @@ export const ExpensesManager = ({ mode = "admin" }) => {
   };
 
   const togglePaidStatus = (expense) => {
+    if (mode === "cashier" && !isSuperOrAdmin) return;
     updateExpense({ ...expense, isPaid: !expense.isPaid });
   };
 
@@ -157,24 +162,37 @@ export const ExpensesManager = ({ mode = "admin" }) => {
                       C${expense.amount.toFixed(2)}
                     </td>
                     <td className="p-3">
-                      <button
-                        onClick={() => togglePaidStatus(expense)}
-                        className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
-                          expense.isPaid ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
-                        }`}
-                      >
-                        {expense.isPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                        {expense.isPaid ? 'Pagado' : 'Pendiente'}
-                      </button>
+                      {mode === "cashier" && !isSuperOrAdmin ? (
+                        <div className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                          expense.isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {expense.isPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                          {expense.isPaid ? 'Pagado' : 'Pendiente'}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => togglePaidStatus(expense)}
+                          className={`flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full cursor-pointer transition-colors ${
+                            expense.isPaid ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                          }`}
+                        >
+                          {expense.isPaid ? <CheckCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                          {expense.isPaid ? 'Pagado' : 'Pendiente'}
+                        </button>
+                      )}
                     </td>
                     <td className="p-3 pr-4 text-right">
-                      <button
-                        onClick={() => handleDelete(expense.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded cursor-pointer transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {mode === "cashier" && !isSuperOrAdmin ? (
+                        <span className="text-xs text-slate-400 font-medium select-none">Lectura</span>
+                      ) : (
+                        <button
+                          onClick={() => handleDelete(expense.id)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded cursor-pointer transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -221,7 +239,7 @@ export const ExpensesManager = ({ mode = "admin" }) => {
                 isPaid: values.isPaid,
                 notificationDate: values.addNotification ? values.notificationDate : null
               };
-              addExpense(newExpense);
+              addExpense(newExpense, mode === "cashier");
               setIsModalOpen(false);
             }}
           >

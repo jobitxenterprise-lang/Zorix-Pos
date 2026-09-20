@@ -76,7 +76,8 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
         e && 
         e.isPaid !== false && 
         (e.paymentMethod === 'Efectivo' || !e.paymentMethod) && 
-        (String(e.shiftId) === String(currentShiftId) || !e.shiftId)
+        e.shiftId &&
+        String(e.shiftId) === String(currentShiftId)
       )
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   }, [safeExpenses, currentShiftId]);
