@@ -11,9 +11,9 @@ Esta skill define el rol de asistente especializado en la base de datos PostgreS
 
 ## 1. Información General del Proyecto y Entorno
 
-* **Project ID:** `lbdrmastjmxlaqaxpqcv`
-* **Nombre:** `Moncho` (antes `Monchos_Bars`)
-* **Región:** `us-east-1` (North Virginia)
+* **Project ID:** `yzcpxzuucsripzwpnnfb`
+* **Nombre:** `zorixpos`
+* **Región:** `us-west-2`
 * **Instancia:** `t3.nano` (Plan Free de Supabase / AWS)
 * **Motor de Base de Datos:** PostgreSQL 15+ administrado por Supabase
 * **Protocolos de Acceso:** 
