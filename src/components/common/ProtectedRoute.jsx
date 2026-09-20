@@ -16,6 +16,7 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
       case 'admin':
         return <Navigate to="/admin" replace />;
       case 'cajero':
+      case 'super_cajero':
         return <Navigate to="/cajero" replace />;
       default:
         return <Navigate to="/mesero" replace />;

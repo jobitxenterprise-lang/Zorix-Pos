@@ -1794,7 +1794,16 @@ export const BarProvider = ({ children }) => {
   const loginMesero = (pin, expectedRole = null) => {
     const targetPass = pin.trim();
     const foundUser = users.find((u) => {
-      const roleMatch = expectedRole ? u.role === expectedRole : (u.role === "mesero" || u.role === "cajero");
+      let roleMatch = false;
+      if (expectedRole === "cajero") {
+        roleMatch = u.role === "cajero" || u.role === "super_cajero";
+      } else if (expectedRole === "mesero") {
+        roleMatch = u.role === "mesero";
+      } else if (expectedRole) {
+        roleMatch = u.role === expectedRole;
+      } else {
+        roleMatch = u.role === "mesero" || u.role === "cajero" || u.role === "super_cajero";
+      }
       return roleMatch && u.password === targetPass;
     });
 

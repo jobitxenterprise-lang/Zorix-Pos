@@ -44,7 +44,7 @@ export const Login = () => {
 
     // Redirigir al panel correspondiente según el rol
     if (res.user.role === "admin") navigate("/admin");
-    else if (res.user.role === "cajero") navigate("/cajero");
+    else if (res.user.role === "cajero" || res.user.role === "super_cajero") navigate("/cajero");
     else navigate("/mesero");
   };
 
@@ -64,7 +64,7 @@ export const Login = () => {
           {step === 1
             ? "Selecciona tu perfil"
             : loginType === "cajero"
-            ? "Acceso Cajero"
+            ? "Acceso Cajero / Super Cajero"
             : loginType === "mesero"
             ? "Acceso Mesero"
             : "Acceso Administrador"}
@@ -74,7 +74,7 @@ export const Login = () => {
             ? "Elige según tu rol para ingresar"
             : loginType === "admin"
             ? "Ingresa tu usuario y contraseña de administrador."
-            : "Ingresa tu PIN de acceso rápido (6 dígitos)."}
+            : "Ingresa tu PIN de acceso rápido."}
         </p>
          {/* Contenido del step */}
       <div className="px-8 pb-10 mt-4">
@@ -95,7 +95,7 @@ export const Login = () => {
               className="w-full text-center p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-blue-300 hover:border-blue-400 shadow-sm transition-all cursor-pointer group"
             >
               <div>
-                <h3 className="font-bold text-blue-950 text-sm">Cajero</h3>
+                <h3 className="font-bold text-blue-950 text-sm">Cajero / Super Cajero</h3>
               </div>
             </button>
             <button
@@ -125,12 +125,12 @@ export const Login = () => {
                   placeholder="••••••"
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
-                  className="w-full text-center tracking-[1em] text-3xl py-4 bg-slate-50 border border-slate-300 rounded-2xl text-blue-950 focus:outline-none focus:border-blue-950 transition-colors font-mono"
-                  maxLength={6}
+                  className="w-full text-center tracking-[0.5em] text-2xl py-4 bg-slate-50 border border-slate-300 rounded-2xl text-blue-950 focus:outline-none focus:border-blue-950 transition-colors font-mono"
+                  maxLength={32}
                   autoFocus
                 />
                 <label className="block text-[10px] mt-3.5 font-bold text-slate-500 uppercase tracking-wider mb-3 text-center">
-                  PIN de Seguridad (6 dígitos)
+                  PIN de Seguridad / Contraseña
                 </label>
               </div>
             ) : (
