@@ -8,7 +8,8 @@ import { UserManager } from './UserManager';
 import { ExpensesManager } from './ExpensesManager';
 import { ProfitLossReport } from './ProfitLossReport';
 import { GlobalAlerts } from './GlobalAlerts';
-import { LayoutDashboard, ShoppingBag, Package, Users, ChevronLeft, ChevronRight, FileText, Wallet, LineChart } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, ChevronLeft, ChevronRight, FileText, Wallet, LineChart, ShieldAlert } from 'lucide-react';
+import { CancellationsReportView } from '../common/CancellationsReportView';
 
 export const AdminView = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -17,6 +18,7 @@ export const AdminView = () => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'history', label: 'Historial Cierres', icon: FileText },
+    { id: 'cancellations', label: 'Anulaciones', icon: ShieldAlert },
     { id: 'expenses', label: 'Gastos y Pagos', icon: Wallet },
     { id: 'profitloss', label: 'Reportes Financieros', icon: LineChart },
     { id: 'catalog', label: 'Catálogo', icon: ShoppingBag },
@@ -105,6 +107,7 @@ export const AdminView = () => {
           <div className="max-w-[1200px] mx-auto pb-10">
             {activeTab === 'dashboard' && <AdminDashboard />}
             {activeTab === 'history' && <AdminShiftHistory />}
+            {activeTab === 'cancellations' && <CancellationsReportView />}
             {activeTab === 'expenses' && <ExpensesManager />}
             {activeTab === 'profitloss' && <ProfitLossReport />}
             {activeTab === 'catalog' && <CatalogManager />}

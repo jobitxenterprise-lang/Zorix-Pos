@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ActiveOrders } from './ActiveOrders';
 import { VentaAlDia } from './VentaAlDia';
-import { LayoutDashboard, Receipt, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Receipt, ShoppingBag, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
 import { CashierHeader } from './CashierHeader';
 import { useBar } from '../../context/BarContext';
+import { CancellationsReportView } from '../common/CancellationsReportView';
 
 export const CashierView = () => {
   const [activeTab, setActiveTab] = useState('active');
@@ -18,6 +19,7 @@ export const CashierView = () => {
     { id: 'active', label: 'Pedidos Activos', icon: Receipt, badge: activeCount > 0 ? activeCount : null },
     { id: 'quick_sale', label: 'Venta al Día', icon: ShoppingBag },
     { id: 'dashboard', label: 'Dashboard Turno', icon: LayoutDashboard },
+    { id: 'cancellations', label: 'Anulaciones', icon: ShieldAlert },
   ];
 
   return (
@@ -125,6 +127,7 @@ export const CashierView = () => {
             {activeTab === 'active' && <ActiveOrders />}
             {activeTab === 'quick_sale' && <VentaAlDia />}
             {activeTab === 'dashboard' && <Dashboard />}
+            {activeTab === 'cancellations' && <CancellationsReportView />}
           </div>
         </div>
         
