@@ -741,7 +741,7 @@ export const BarProvider = ({ children }) => {
     const writePromise = (async () => {
       const {
         effectiveName,
-        isOccupied,
+        tableStatus,
         customerName,
         isBar,
         items,
@@ -771,7 +771,7 @@ export const BarProvider = ({ children }) => {
           p_table: {
             name: effectiveName,
             area: targetTable?.area || "Rancho principal",
-            status: isOccupied ? "ocupada" : "libre",
+            status: tableStatus || targetTable?.status || "ocupada",
             customer_name: customerName,
             assigned_waiter_id: currentUser?.id || "",
             created_at: targetTable?.createdAt || new Date().toISOString(),
@@ -878,7 +878,7 @@ export const BarProvider = ({ children }) => {
         }
       }
 
-      const isOccupied = items.length > 0;
+      const tableStatus = targetTable?.status === "pendiente_pago" ? "pendiente_pago" : "ocupada";
       const effectiveName = tableName || targetTable?.name || `Mesa ${sTableId}`;
       const isBar = Boolean(targetTable?.isBar);
       const orderVersion = Number(targetTable?.orderVersion || 0);
@@ -890,7 +890,7 @@ export const BarProvider = ({ children }) => {
         items,
         unprintedItems: unprintedItems || [],
         customerName,
-        status: isOccupied ? "ocupada" : "libre",
+        status: tableStatus,
         orderVersion,
         writeId,
         timestamp: Date.now(),
@@ -899,7 +899,7 @@ export const BarProvider = ({ children }) => {
       // 2. Guardar la versión más reciente en la cola de escritura serializada
       latestPendingWriteRef.current.set(sTableId, {
         effectiveName,
-        isOccupied,
+        tableStatus,
         customerName,
         isBar,
         items,
@@ -916,7 +916,7 @@ export const BarProvider = ({ children }) => {
             return {
               ...t,
               name: effectiveName,
-              status: isOccupied ? "ocupada" : "libre",
+              status: tableStatus,
               customerName: customerName,
               assignedWaiterId: currentUser?.id,
               assignedWaiterName: currentUser?.name || t.assignedWaiterName,
