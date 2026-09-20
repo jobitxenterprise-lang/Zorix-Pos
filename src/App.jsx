@@ -11,7 +11,7 @@ const RootRedirect = () => {
   const { currentUser } = useBar();
   if (!currentUser) return <Navigate to="/login" replace />;
   if (currentUser.role === 'admin') return <Navigate to="/admin" replace />;
-  if (currentUser.role === 'cajero') return <Navigate to="/cajero" replace />;
+  if (currentUser.role === 'cajero' || currentUser.role === 'super_cajero') return <Navigate to="/cajero" replace />;
   return <Navigate to="/mesero" replace />;
 };
 
@@ -39,7 +39,7 @@ const MainContent = () => {
           <Route
             path="/cajero"
             element={
-              <ProtectedRoute allowedRoles={['cajero', 'admin']}>
+              <ProtectedRoute allowedRoles={['cajero', 'super_cajero', 'admin']}>
                 <CashierView />
               </ProtectedRoute>
             }

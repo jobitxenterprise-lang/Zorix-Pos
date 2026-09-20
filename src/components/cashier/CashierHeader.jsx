@@ -1,10 +1,12 @@
-import React from 'react';
-import { LogOut, User, Wifi, WifiOff, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { LogOut, User, Wifi, WifiOff, RefreshCw, ShieldAlert } from 'lucide-react';
 import { FaCashRegister } from "react-icons/fa";
 import { useBar } from '../../context/BarContext';
+import { CancellationsReportModal } from '../common/CancellationsReportModal';
 
 export const CashierHeader = () => {
   const { currentUser, logout, isOnline, pendingSyncCount, syncOfflineQueue } = useBar();
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   return (
     <header className="bg-white text-blue-950 shadow-sm border-b border-slate-200 sticky top-0 z-20 font-sans">
@@ -54,6 +56,16 @@ export const CashierHeader = () => {
               </span>
             </div>
           )}
+          {/* Botón de Historial de Auditoría de Anulaciones */}
+          <button
+            onClick={() => setIsAuditModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm"
+            title="Historial de Auditoría de Anulaciones"
+          >
+            <ShieldAlert className="w-4 h-4 text-amber-600" />
+            <span className="hidden sm:inline">Anulaciones</span>
+          </button>
+
           <button
             onClick={logout}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm"
@@ -64,6 +76,11 @@ export const CashierHeader = () => {
           </button>
         </div>
       </div>
+
+      <CancellationsReportModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
+      />
     </header>
   );
 };

@@ -159,6 +159,9 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
             tableName,
             createdAt,
             expectedVersion,
+            userId,
+            actionId,
+            reason,
           } = item.payload;
           const sTableId = String(tableId);
           const orderItems = (items || []).map((item) => ({
@@ -168,28 +171,39 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
               (unprinted) => String(unprinted.product.id) === String(item.product.id),
             ),
           }));
-          const { error } = await supabase.rpc('save_table_order', {
+
+          const sActionId = actionId || item.id;
+
+          const { error } = await supabase.rpc('save_table_order_audited', {
             p_table_id: sTableId,
-            p_expected_version: expectedVersion,
+            p_expected_version: expectedVersion !== undefined && expectedVersion !== null ? Number(expectedVersion) : 0,
             p_table: {
               name: tableName || (isBar ? 'Barra' : `Mesa ${sTableId}`),
               status: orderItems.length > 0 ? 'ocupada' : 'libre',
-              customer_name: customerName,
+              customer_name: customerName || '',
               assigned_waiter_id: waiterId || '',
               created_at: createdAt || new Date().toISOString(),
               is_bar_account: Boolean(isBar),
             },
             p_items: orderItems,
+            p_user_id: userId,
+            p_action_id: sActionId,
+            p_reason: reason || 'Modificación de comanda',
           });
+
           if (error) {
-            console.error('Conflicto/error sincronizando pedido offline:', error);
-            // Si es un conflicto de versión irrecuperable, descartar inmediatamente para evitar tormenta infinita
+            console.error('Error sincronizando pedido offline con save_table_order_audited:', error);
+            // Conflicto de versión u omisión de permisos
             if (error.code === '40001' || String(error.message).includes('TABLE_ORDER_CONFLICT')) {
               console.warn(`⚠️ Descartando pedido obsoleto [${item.id}] en mesa ${sTableId} por conflicto de versión.`);
               removeOfflineAction(item.id);
               break;
             }
-            // Para otros errores temporales, contar intentos y descartar si supera 3
+            if (error.code === '42501' || String(error.message).includes('PERMISO_DENEGADO')) {
+              console.warn(`⚠️ Descartando acción no autorizada [${item.id}] por falta de permisos.`);
+              removeOfflineAction(item.id);
+              break;
+            }
             item.attempts = (item.attempts || 0) + 1;
             if (item.attempts >= 3) {
               console.warn(`⚠️ Descartando acción [${item.id}] tras 3 intentos fallidos.`);
@@ -202,11 +216,27 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
         }
 
         case 'CANCEL_ORDER': {
-          const { tableId } = item.payload;
+          const { tableId, userId, actionId, reason } = item.payload;
           const sTableId = String(tableId);
-          await supabase.from('orders').delete().eq('table_id', sTableId);
-          await supabase.from('tables').delete().eq('id', sTableId);
-          success = true;
+          const sActionId = actionId || item.id;
+
+          const { error } = await supabase.rpc('cancel_table_order_audited', {
+            p_table_id: sTableId,
+            p_user_id: userId,
+            p_action_id: sActionId,
+            p_reason: reason || 'Cancelación de mesa',
+          });
+
+          if (error) {
+            console.error('Error sincronizando cancelación offline:', error);
+            if (error.code === '42501' || String(error.message).includes('PERMISO_DENEGADO')) {
+              console.warn(`⚠️ Descartando cancelación no autorizada [${item.id}] por permiso denegado.`);
+              removeOfflineAction(item.id);
+              break;
+            }
+          } else {
+            success = true;
+          }
           break;
         }
 

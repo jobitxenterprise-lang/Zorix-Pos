@@ -298,8 +298,8 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                   <CreditCard className="w-6 h-6" />
                 </div>
                 <div>
-                  <span className="text-sm font-extrabold text-slate-800 block">Total Vouchers / Bauchers (Tarjeta)</span>
-                  <span className="text-xs text-slate-500 font-medium">Monto total de bauchers en físico (POS)</span>
+                  <span className="text-sm font-extrabold text-slate-800 block">Total en Tarjeta </span>
+                
                 </div>
               </div>
 
@@ -360,7 +360,7 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                 </span>
                 {countedCardValue > 0 && (
                   <span className="text-xs font-extrabold text-blue-900 block pt-1 border-t border-slate-100">
-                    + C${countedCardValue.toFixed(2)} en Tarjetas (Total Declarado: C${totalPhysicalDeclared.toFixed(2)})
+                    + C${countedCardValue.toFixed(2)}Total en Tarjetas : C${totalPhysicalDeclared.toFixed(2)}
                   </span>
                 )}
               </div>

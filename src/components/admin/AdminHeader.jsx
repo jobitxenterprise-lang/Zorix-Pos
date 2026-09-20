@@ -1,10 +1,12 @@
-import React from 'react';
-import { Shield, LogOut, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Shield, LogOut, User, ShieldAlert } from 'lucide-react';
 import { useBar } from '../../context/BarContext';
 import logo from "../../assets/Imagenes/logo.png";
+import { CancellationsReportModal } from '../common/CancellationsReportModal';
 
 export const AdminHeader = () => {
   const { currentUser, logout } = useBar();
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   return (
     <header className="bg-white text-blue-950 shadow-sm border-b border-slate-200 sticky top-0 z-20">
@@ -21,7 +23,7 @@ export const AdminHeader = () => {
           </div>
         </div>
 
-        {/* Usuario Activo y Cerrar Sesión */}
+        {/* Usuario Activo, Auditoría y Cerrar Sesión */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {currentUser && (
             <div className="hidden md:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
@@ -32,6 +34,16 @@ export const AdminHeader = () => {
               </span>
             </div>
           )}      
+
+          <button
+            onClick={() => setIsAuditModalOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm"
+            title="Historial de Auditoría de Anulaciones"
+          >
+            <ShieldAlert className="w-4 h-4 text-amber-600" />
+            <span className="hidden sm:inline">Anulaciones</span>
+          </button>
+
           <button
             onClick={logout}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs rounded-xl transition-all cursor-pointer shadow-sm"
@@ -42,6 +54,11 @@ export const AdminHeader = () => {
           </button>
         </div>
       </div>
+
+      <CancellationsReportModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
+      />
     </header>
   );
 };

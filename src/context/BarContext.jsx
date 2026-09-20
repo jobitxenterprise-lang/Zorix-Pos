@@ -765,19 +765,23 @@ export const BarProvider = ({ children }) => {
               )
             : true,
         }));
-        const { data, error } = await supabase.rpc("save_table_order", {
+        const actionId = writeData.actionId || ("act_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9));
+        const { data, error } = await supabase.rpc("save_table_order_audited", {
           p_table_id: sTableId,
           p_expected_version: orderVersion,
           p_table: {
             name: effectiveName,
             area: targetTable?.area || "Rancho principal",
             status: tableStatus || targetTable?.status || "ocupada",
-            customer_name: customerName,
+            customer_name: customerName || "",
             assigned_waiter_id: currentUser?.id || "",
             created_at: targetTable?.createdAt || new Date().toISOString(),
             is_bar_account: Boolean(isBar),
           },
           p_items: orderItems,
+          p_user_id: currentUser?.id,
+          p_action_id: actionId,
+          p_reason: writeData.reason || "Modificación de comanda",
         });
         if (error) throw error;
 
@@ -826,6 +830,9 @@ export const BarProvider = ({ children }) => {
             waiterId: currentUser?.id,
             createdAt: targetTable?.createdAt || new Date().toISOString(),
             expectedVersion: orderVersion,
+            userId: currentUser?.id,
+            actionId: actionId || ("act_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)),
+            reason: writeData.reason || "Modificación de comanda",
           });
           setPendingSyncCount(getOfflineQueue().length);
           return;
@@ -1126,34 +1133,8 @@ export const BarProvider = ({ children }) => {
   };
 
   // Función para eliminar mesas creadas dinámicamente
-  const deleteTable = async (tableId) => {
-    if (currentRole === "mesero" || currentUser?.role === "mesero") {
-      showAlert({ title: "Permiso denegado", text: "El rol Mesero no tiene permiso para cancelar o eliminar mesas.", icon: "error" });
-      return;
-    }
-    try {
-      const sTableId = String(tableId);
-      purgeTableTimersAndWrites(sTableId);
-      await supabase.from("orders").delete().eq("table_id", sTableId);
-      const { error } = await supabase.from("tables").delete().eq("id", sTableId);
-      if (error) {
-        console.error("Error deleting table:", error);
-        showError("Error al eliminar mesa", error.message);
-        return;
-      }
-      setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
-
-      // Proteger que no vuelva a aparecer en el próximo fetchData
-      pendingSyncTablesRef.current.set(sTableId, {
-        isDeleted: true,
-        timestamp: Date.now(),
-      });
-
-      await fetchData(true);
-    } catch (err) {
-      console.error("Error al eliminar mesa:", err);
-      showError("Error al eliminar la mesa", err.message);
-    }
+  const deleteTable = async (tableId, reason = "Eliminación de mesa") => {
+    return cancelTableOrder(tableId, reason);
   };
 
   const sendOrderToCashier = async (tableId, customerName) => {
@@ -1536,12 +1517,17 @@ export const BarProvider = ({ children }) => {
     }
   };
 
-  const cancelTableOrder = async (tableId) => {
-    if (currentRole === "mesero" || currentUser?.role === "mesero") {
-      showAlert({ title: "Permiso denegado", text: "El rol Mesero no tiene permiso para cancelar o eliminar mesas.", icon: "error" });
+  const cancelTableOrder = async (tableId, reason = "Cancelación de mesa") => {
+    if (!["super_cajero", "admin"].includes(currentRole) && !["super_cajero", "admin"].includes(currentUser?.role)) {
+      showAlert({ 
+        title: "Permiso denegado", 
+        text: "El rol Cajero o Mesero no tiene permiso para cancelar mesas completas. Requiere rol Super Cajero o Administrador.", 
+        icon: "error" 
+      });
       return;
     }
     const sTableId = String(tableId);
+    const actionId = "cancel_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
     purgeTableTimersAndWrites(sTableId);
 
     // OPTIMISTIC LOCAL UPDATE
@@ -1552,18 +1538,45 @@ export const BarProvider = ({ children }) => {
     });
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId });
+      enqueueOfflineAction('CANCEL_ORDER', { 
+        tableId: sTableId,
+        userId: currentUser?.id,
+        actionId,
+        reason,
+      });
       setPendingSyncCount(getOfflineQueue().length);
       return;
     }
 
     try {
-      await supabase.from("orders").delete().eq("table_id", sTableId);
-      await supabase.from("tables").delete().eq("id", sTableId);
+      const { error } = await supabase.rpc("cancel_table_order_audited", {
+        p_table_id: sTableId,
+        p_user_id: currentUser?.id,
+        p_action_id: actionId,
+        p_reason: reason,
+      });
+
+      if (error) {
+        console.error("Error al cancelar orden en Supabase:", error);
+        if (error.code === '42501' || String(error.message).includes('PERMISO_DENEGADO')) {
+          showAlert({ 
+            title: "Permiso denegado", 
+            text: "No tienes autorización para cancelar mesas completas.", 
+            icon: "error" 
+          });
+          fetchData(true);
+          return;
+        }
+      }
       fetchData(true);
     } catch (err) {
-      console.error("Error al cancelar orden en Supabase, encolando:", err);
-      enqueueOfflineAction('CANCEL_ORDER', { tableId: sTableId });
+      console.error("Error al cancelar orden en Supabase, encolando offline:", err);
+      enqueueOfflineAction('CANCEL_ORDER', { 
+        tableId: sTableId,
+        userId: currentUser?.id,
+        actionId,
+        reason,
+      });
       setPendingSyncCount(getOfflineQueue().length);
     }
   };
@@ -1806,6 +1819,29 @@ export const BarProvider = ({ children }) => {
     return { success: true, user: sessionData };
   };
 
+  const [cancellationLogs, setCancellationLogs] = useState([]);
+
+  const loadOrderCancellations = async (filters = {}) => {
+    if (!currentUser?.id) return { success: false, data: [] };
+    try {
+      const { data, error } = await supabase.rpc("get_order_cancellations", {
+        p_user_id: currentUser.id,
+        p_start_date: filters.startDate || null,
+        p_end_date: filters.endDate || null,
+        p_shift_id: filters.shiftId || null,
+        p_cancellation_type: filters.cancellationType || null,
+        p_limit: filters.limit || 100,
+        p_offset: filters.offset || 0,
+      });
+      if (error) throw error;
+      setCancellationLogs(data || []);
+      return { success: true, data: data || [] };
+    } catch (err) {
+      console.error("Error al cargar historial de auditoría:", err);
+      return { success: false, error: err.message, data: [] };
+    }
+  };
+
   const logout = () => {
     sessionStorage.removeItem(SESSION_KEY);
     setCurrentUser(null);
@@ -1839,6 +1875,8 @@ export const BarProvider = ({ children }) => {
         expenses,
         isOnline,
         pendingSyncCount,
+        cancellationLogs,
+        loadOrderCancellations,
         syncOfflineQueue: () => syncOfflineQueue(supabase, ({ synced, remaining }) => {
           setPendingSyncCount(remaining);
           if (synced > 0) fetchData(true);
