@@ -1760,7 +1760,6 @@ export const BarProvider = ({ children }) => {
         category: newExpense.category,
         amount: Number(newExpense.amount),
         is_paid: newExpense.isPaid !== false,
-        payment_method: newExpense.paymentMethod || "Efectivo",
         notification_date: newExpense.notificationDate || null,
       });
       if (error) console.error("Error al registrar gasto:", error);
@@ -1779,7 +1778,6 @@ export const BarProvider = ({ children }) => {
           category: updatedExpense.category,
           amount: Number(updatedExpense.amount),
           is_paid: updatedExpense.isPaid,
-          payment_method: updatedExpense.paymentMethod || "Efectivo",
           notification_date: updatedExpense.notificationDate || null,
         })
         .eq("id", updatedExpense.id);
