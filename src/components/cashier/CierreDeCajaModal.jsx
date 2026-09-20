@@ -50,9 +50,10 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
 
   // 1. Cálculos de Sistema Seguros
   const safeInvoices = useMemo(() => Array.isArray(paidInvoices) ? paidInvoices : [], [paidInvoices]);
+  const safeExpenses = useMemo(() => Array.isArray(context.expenses) ? context.expenses : [], [context.expenses]);
   const totalInvoicesCount = safeInvoices.length;
 
-  const expectedCashSystem = useMemo(() => 
+  const rawCashSales = useMemo(() => 
     safeInvoices
       .filter(i => i && i.paymentMethod === 'Efectivo')
       .reduce((sum, inv) => sum + (Number(inv?.total) || 0), 0),
@@ -66,7 +67,22 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
     [safeInvoices]
   );
 
-  const totalSalesSystem = expectedCashSystem + totalCardSystem;
+  const totalSalesSystem = rawCashSales + totalCardSystem;
+
+  // Gastos pagados en efectivo del turno activo únicamente
+  const shiftCashExpenses = useMemo(() => {
+    return safeExpenses
+      .filter(e => 
+        e && 
+        e.isPaid !== false && 
+        (e.paymentMethod === 'Efectivo' || !e.paymentMethod) && 
+        (String(e.shiftId) === String(currentShiftId) || !e.shiftId)
+      )
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  }, [safeExpenses, currentShiftId]);
+
+  // Efectivo esperado real (SIN usar Math.max(0, ...), permitiendo valores negativos si los gastos superan las ventas)
+  const expectedCashSystem = rawCashSales - shiftCashExpenses;
 
   // 2. Cálculos de Arqueo Físico en Vivo
   const countedNioFromBills = useMemo(() => {
@@ -122,6 +138,7 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
       try {
         printShiftCloseReceipt({
           invoices: safeInvoices,
+          expenses: safeExpenses.filter(e => e && e.isPaid !== false && (e.paymentMethod === 'Efectivo' || !e.paymentMethod) && (String(e.shiftId) === String(currentShiftId) || !e.shiftId)),
           cashierName: currentUser?.name || 'Cajero Principal',
           startTime: shiftStartTime,
           endTime: new Date(),
@@ -141,6 +158,8 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
         countedNioFromBills,
         countedUsdInNio,
         totalPhysicalCash,
+        rawCashSales,
+        shiftCashExpenses,
         expectedCashSystem,
         cashDifference,
         cardPhysicalAmount: countedCardValue,
@@ -335,6 +354,10 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                   <span className="font-extrabold text-slate-900">{totalInvoicesCount}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span>Ventas Efectivo (Sistema):</span>
+                  <span className="font-extrabold text-emerald-700">C${rawCashSales.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-slate-600">
                   <span>Ventas Tarjeta (Sistema):</span>
                   <span className="font-extrabold text-blue-600">C${totalCardSystem.toFixed(2)}</span>
                 </div>
@@ -342,13 +365,21 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                   <span>Vouchers Tarjeta (Físico):</span>
                   <span className="font-extrabold text-blue-800">C${countedCardValue.toFixed(2)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-600">
+                {shiftCashExpenses > 0 && (
+                  <div className="flex items-center justify-between text-xs text-red-600 font-medium">
+                    <span>(-) Gastos Pagados (Efectivo):</span>
+                    <span className="font-extrabold text-red-600">- C${shiftCashExpenses.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
                   <span>Ventas Totales del Turno:</span>
                   <span className="font-black text-slate-900 text-sm">C${totalSalesSystem.toFixed(2)}</span>
                 </div>
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
                   <span className="font-bold text-slate-700">Total Esperado en Efectivo:</span>
-                  <span className="font-black text-blue-700 text-base">C${expectedCashSystem.toFixed(2)}</span>
+                  <span className={`font-black text-base ${expectedCashSystem < 0 ? 'text-red-600' : 'text-blue-700'}`}>
+                    C${expectedCashSystem.toFixed(2)}
+                  </span>
                 </div>
               </div>
 

@@ -5,6 +5,7 @@ import { INITIAL_PRODUCTS } from "../mock/initialData";
  */
 export const printShiftCloseReceipt = ({
   invoices = [],
+  expenses = [],
   cashierName = "Cajero Principal",
   startTime = null,
   endTime = new Date(),
@@ -20,6 +21,12 @@ export const printShiftCloseReceipt = ({
     .filter((i) => i.paymentMethod !== "Efectivo")
     .reduce((sum, inv) => sum + (Number(inv.total) || 0), 0);
   const totalSales = totalCash + totalCard;
+
+  const totalCashExpenses = (expenses || [])
+    .filter((e) => e && e.isPaid !== false && (e.paymentMethod === "Efectivo" || !e.paymentMethod))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+  const expectedCash = totalCash - totalCashExpenses;
 
   const now = endTime ? new Date(endTime) : new Date();
   const dateStr = now.toLocaleDateString("es-NI", {
@@ -217,24 +224,33 @@ export const printShiftCloseReceipt = ({
     </div>
 
     <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">RESUMEN DE VENTAS</div>
+    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">RESUMEN DE CAJA Y VENTAS</div>
     <div style="font-size: 16px; line-height: 1.6; color: #000;">
       <div style="display: flex; justify-content: space-between;">
         <span>Facturas Emitidas:</span>
         <strong>${totalInvoicesCount}</strong>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span>Total Efectivo:</span>
+        <span>Ventas Efectivo:</span>
         <strong>C$${totalCash.toFixed(2)}</strong>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span>Total Tarjeta / Transf:</span>
+        <span>Ventas Tarjeta / Transf:</span>
         <strong>C$${totalCard.toFixed(2)}</strong>
       </div>
-      <div style="border-top: 1px solid #000; margin: 6px 0;"></div>
-      <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #000;">
+      <div style="display: flex; justify-content: space-between; font-weight: bold;">
         <span>TOTAL VENTAS:</span>
         <span>C$${totalSales.toFixed(2)}</span>
+      </div>
+      ${totalCashExpenses > 0 ? `
+      <div style="display: flex; justify-content: space-between; color: #000;">
+        <span>(-) Gastos (Efectivo):</span>
+        <strong>- C$${totalCashExpenses.toFixed(2)}</strong>
+      </div>` : ''}
+      <div style="border-top: 1px solid #000; margin: 6px 0;"></div>
+      <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #000;">
+        <span>EFECTIVO ESPERADO:</span>
+        <span>C$${expectedCash.toFixed(2)}</span>
       </div>
     </div>
 

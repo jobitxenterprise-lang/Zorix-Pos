@@ -5,8 +5,8 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import { Wallet, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
 import { Modal } from '../common/Modal';
 
-export const ExpensesManager = () => {
-  const { expenses, addExpense, updateExpense, deleteExpense } = useBar();
+export const ExpensesManager = ({ mode = "admin" }) => {
+  const { expenses, addExpense, updateExpense, deleteExpense, currentShiftId } = useBar();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filterMonth, setFilterMonth] = useState(new Date().getMonth());
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
@@ -19,6 +19,9 @@ export const ExpensesManager = () => {
   ];
 
   const filteredExpenses = expenses.filter(e => {
+    if (mode === "cashier") {
+      return String(e.shiftId) === String(currentShiftId) || !e.shiftId;
+    }
     const d = new Date(e.date);
     return !isNaN(d.getTime()) && d.getMonth() === Number(filterMonth) && d.getFullYear() === Number(filterYear);
   });
@@ -48,20 +51,28 @@ export const ExpensesManager = () => {
       {/* Header y Resumen */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 m-0">Control de Gastos</h2>
-          <p className="text-sm text-slate-500 m-0 mt-1">Registra compras y configura alertas para pago de servicios.</p>
+          <h2 className="text-2xl font-black text-slate-800 m-0">
+            {mode === "cashier" ? "Gastos del Turno Activo" : "Control de Gastos"}
+          </h2>
+          <p className="text-sm text-slate-500 m-0 mt-1">
+            {mode === "cashier" 
+              ? "Registra las salidas de dinero en caja realizadas durante el turno." 
+              : "Registra compras y configura alertas para pago de servicios."}
+          </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Nuevo Gasto
+          <Plus className="w-4 h-4" /> Nuevo Gasto de Caja
         </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-xs font-bold text-slate-500 uppercase">Total Gastos (Mes)</p>
+          <p className="text-xs font-bold text-slate-500 uppercase">
+            {mode === "cashier" ? "Total Gastos Turno" : "Total Gastos (Mes)"}
+          </p>
           <h3 className="text-2xl font-black text-slate-900 m-0 mt-1">C${totalExpenses.toFixed(2)}</h3>
         </div>
         <div className="bg-emerald-50 p-5 rounded-xl border border-emerald-200 shadow-sm">
@@ -77,27 +88,31 @@ export const ExpensesManager = () => {
       {/* Lista de Gastos */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-          <h3 className="font-bold text-slate-800 m-0 text-sm">Historial de Gastos</h3>
-          <div className="flex gap-2">
-            <select
-              value={filterMonth}
-              onChange={(e) => setFilterMonth(Number(e.target.value))}
-              className="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
-            >
-              <option value={0}>Enero</option>
-              <option value={1}>Febrero</option>
-              <option value={2}>Marzo</option>
-              <option value={3}>Abril</option>
-              <option value={4}>Mayo</option>
-              <option value={5}>Junio</option>
-              <option value={6}>Julio</option>
-              <option value={7}>Agosto</option>
-              <option value={8}>Septiembre</option>
-              <option value={9}>Octubre</option>
-              <option value={10}>Noviembre</option>
-              <option value={11}>Diciembre</option>
-            </select>
-          </div>
+          <h3 className="font-bold text-slate-800 m-0 text-sm">
+            {mode === "cashier" ? "Registro de Gastos de Caja del Turno" : "Historial de Gastos"}
+          </h3>
+          {mode === "admin" && (
+            <div className="flex gap-2">
+              <select
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(Number(e.target.value))}
+                className="p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+              >
+                <option value={0}>Enero</option>
+                <option value={1}>Febrero</option>
+                <option value={2}>Marzo</option>
+                <option value={3}>Abril</option>
+                <option value={4}>Mayo</option>
+                <option value={5}>Junio</option>
+                <option value={6}>Julio</option>
+                <option value={7}>Agosto</option>
+                <option value={8}>Septiembre</option>
+                <option value={9}>Octubre</option>
+                <option value={10}>Noviembre</option>
+                <option value={11}>Diciembre</option>
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -116,7 +131,7 @@ export const ExpensesManager = () => {
               {filteredExpenses.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="p-8 text-center text-slate-400">
-                    No hay gastos registrados en este mes.
+                    {mode === "cashier" ? "No hay gastos de caja registrados en este turno." : "No hay gastos registrados en este mes."}
                   </td>
                 </tr>
               ) : (
@@ -174,7 +189,7 @@ export const ExpensesManager = () => {
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title="Registrar Nuevo Gasto"
+          title="Registrar Nuevo Gasto de Caja"
           maxWidth="max-w-lg"
           height="h-auto max-h-[90vh]"
         >
@@ -183,6 +198,7 @@ export const ExpensesManager = () => {
               description: '',
               category: 'compras',
               amount: '',
+              paymentMethod: 'Efectivo',
               isPaid: true,
               addNotification: false,
               notificationDate: ''
@@ -201,6 +217,7 @@ export const ExpensesManager = () => {
                 description: values.description,
                 category: values.category,
                 amount: parseFloat(values.amount),
+                paymentMethod: 'Efectivo',
                 isPaid: values.isPaid,
                 notificationDate: values.addNotification ? values.notificationDate : null
               };
@@ -237,6 +254,7 @@ export const ExpensesManager = () => {
                     />
                     <ErrorMessage name="amount" component="div" className="text-red-500 text-xs mt-1 font-semibold" />
                   </div>
+
                   <div>
                     <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
                       Categoría:
@@ -247,7 +265,6 @@ export const ExpensesManager = () => {
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-300 text-slate-800 rounded-xl text-xs sm:text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all cursor-pointer"
                       onChange={(e) => {
                         setFieldValue('category', e.target.value);
-                        // Auto check isPaid to false for services usually
                         if (e.target.value === 'servicios') {
                           setFieldValue('isPaid', false);
                         } else {
@@ -271,7 +288,7 @@ export const ExpensesManager = () => {
                     className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer" 
                   />
                   <label htmlFor="isPaid" className="text-xs sm:text-sm font-bold text-slate-700 cursor-pointer select-none">
-                    Este gasto ya fue pagado
+                    Este gasto ya fue pagado de caja
                   </label>
                 </div>
 

@@ -402,6 +402,7 @@ export const BarProvider = ({ children }) => {
             description: e.description || "",
             category: e.category || "otros",
             isPaid: e.is_paid !== false,
+            paymentMethod: e.payment_method || "Efectivo",
             notificationDate: e.notification_date || null,
             date: e.created_at || e.date || new Date().toISOString(),
           })),
@@ -423,6 +424,7 @@ export const BarProvider = ({ children }) => {
           description: e.description || "",
           category: e.category || "otros",
           isPaid: e.is_paid !== false,
+          paymentMethod: e.payment_method || "Efectivo",
           notificationDate: e.notification_date || null,
           date: e.created_at || e.date || new Date().toISOString(),
         })) : [],
@@ -1732,6 +1734,10 @@ export const BarProvider = ({ children }) => {
   };
 
   const addExpense = async (newExpense) => {
+    if (!currentShiftId && (currentRole === "cajero" || currentUser?.role === "cajero")) {
+      showError("Turno No Disponible", "Debes tener un turno de caja activo para poder registrar gastos.");
+      return;
+    }
     try {
       const { error } = await supabase.from("expenses").insert({
         shift_id: currentShiftId || null,
@@ -1739,6 +1745,7 @@ export const BarProvider = ({ children }) => {
         category: newExpense.category,
         amount: Number(newExpense.amount),
         is_paid: newExpense.isPaid !== false,
+        payment_method: newExpense.paymentMethod || "Efectivo",
         notification_date: newExpense.notificationDate || null,
       });
       if (error) console.error("Error al registrar gasto:", error);
@@ -1757,6 +1764,7 @@ export const BarProvider = ({ children }) => {
           category: updatedExpense.category,
           amount: Number(updatedExpense.amount),
           is_paid: updatedExpense.isPaid,
+          payment_method: updatedExpense.paymentMethod || "Efectivo",
           notification_date: updatedExpense.notificationDate || null,
         })
         .eq("id", updatedExpense.id);

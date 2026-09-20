@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ActiveOrders } from './ActiveOrders';
 import { VentaAlDia } from './VentaAlDia';
-import { LayoutDashboard, Receipt, ShoppingBag, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Receipt, ShoppingBag, ChevronLeft, ChevronRight, ShieldAlert, Wallet } from 'lucide-react';
 import { CashierHeader } from './CashierHeader';
 import { useBar } from '../../context/BarContext';
 import { CancellationsReportView } from '../common/CancellationsReportView';
+import { ExpensesManager } from '../admin/ExpensesManager';
 
 export const CashierView = () => {
   const [activeTab, setActiveTab] = useState('active');
@@ -18,6 +19,7 @@ export const CashierView = () => {
   const tabs = [
     { id: 'active', label: 'Pedidos Activos', icon: Receipt, badge: activeCount > 0 ? activeCount : null },
     { id: 'quick_sale', label: 'Venta al Día', icon: ShoppingBag },
+    { id: 'expenses', label: 'Gastos', icon: Wallet },
     { id: 'dashboard', label: 'Dashboard Turno', icon: LayoutDashboard },
     { id: 'cancellations', label: 'Anulaciones', icon: ShieldAlert },
   ];
@@ -126,6 +128,7 @@ export const CashierView = () => {
           <div className="max-w-full lg:max-w-[1200px] mx-auto h-full pb-10">
             {activeTab === 'active' && <ActiveOrders />}
             {activeTab === 'quick_sale' && <VentaAlDia />}
+            {activeTab === 'expenses' && <ExpensesManager mode="cashier" />}
             {activeTab === 'dashboard' && <Dashboard />}
             {activeTab === 'cancellations' && <CancellationsReportView />}
           </div>
