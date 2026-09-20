@@ -216,7 +216,7 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
         }
 
         case 'CANCEL_ORDER': {
-          const { tableId, userId, actionId, reason } = item.payload;
+          const { tableId, userId, actionId, reason, items } = item.payload;
           const sTableId = String(tableId);
           const sActionId = actionId || item.id;
 
@@ -225,6 +225,7 @@ export const syncOfflineQueue = async (supabase, onComplete) => {
             p_user_id: userId,
             p_action_id: sActionId,
             p_reason: reason || 'Cancelación de mesa',
+            p_items: items && items.length > 0 ? items : null,
           });
 
           if (error) {

@@ -330,12 +330,12 @@ export const OrderModal = ({ table, onClose }) => {
                       <span className="text-[11px] text-slate-500 font-medium">
                         C${(item.product?.price || 0).toFixed(2)} c/u
                       </span>
-                      <div className="flex items-center bg-slate-100 rounded-md border border-slate-300">
+                      <div className="flex items-center bg-slate-100/80 rounded-lg border border-slate-300 p-0.5">
                         <button
                           onClick={() => handleQuantity(item.product.id, -1)}
                           disabled={cannotReduce}
                           title={cannotReduce ? "Se requiere rol Cajero para reducir cantidades guardadas" : "Disminuir"}
-                          className={`px-2 py-1 rounded-l-md text-slate-600 transition-colors ${
+                          className={`w-7 h-7 flex items-center justify-center rounded-md text-slate-600 transition-colors ${
                             cannotReduce 
                               ? 'opacity-40 cursor-not-allowed bg-slate-200' 
                               : 'hover:bg-slate-200 cursor-pointer active:bg-slate-300'
@@ -347,12 +347,12 @@ export const OrderModal = ({ table, onClose }) => {
                             <Minus className="w-3.5 h-3.5" />
                           )}
                         </button>
-                        <span className="font-bold text-slate-800 w-7 text-center text-xs">
+                        <span className="font-bold text-slate-800 w-8 text-center text-xs select-none">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => handleQuantity(item.product.id, 1)}
-                          className="px-2 py-1 hover:bg-slate-200 rounded-r-md cursor-pointer text-slate-600 transition-colors active:bg-slate-300"
+                          className="w-7 h-7 flex items-center justify-center hover:bg-slate-200 rounded-md cursor-pointer text-slate-600 transition-colors active:bg-slate-300"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -365,19 +365,18 @@ export const OrderModal = ({ table, onClose }) => {
           </div>
 
           {/* Resumen Total y Acciones Fijas Abajo */}
-          <div className="border-t border-slate-200 pt-3 mt-auto shrink-0 bg-slate-50 pb-24 lg:pb-1">
-            <div className="flex justify-between items-center mb-2.5">
-              <span className="font-bold text-slate-600 text-xs tracking-wider">
-                TOTAL:
+          <div className="border-t border-slate-200 pt-3 mt-auto shrink-0 bg-slate-50 pb-24 lg:pb-2">
+            <div className="flex justify-between items-center mb-3 bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-xs">
+              <span className="font-bold text-slate-500 text-xs tracking-wider uppercase">
+                Total:
               </span>
-
-              <div className="text-right">
+              <div className="flex items-baseline gap-2">
                 <span className="font-extrabold text-blue-700 text-xl">
                   C${calculateTotal().toFixed(2)}
                 </span>
-              </div>
-              <div className="text-slate-500 text-xs font-bold mt-0.5">
-                (US$ {(calculateTotal() / (exchangeRate || 36.62)).toFixed(2)})
+                <span className="text-slate-400 text-xs font-semibold">
+                  (US$ {(calculateTotal() / (exchangeRate || 36.62)).toFixed(2)})
+                </span>
               </div>
             </div>
 
@@ -389,40 +388,44 @@ export const OrderModal = ({ table, onClose }) => {
                   type="button"
                   disabled={localItems.length === 0}
                   onClick={() => setShowComanda(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20 active:scale-[0.99]"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20 active:scale-[0.99] min-h-[46px]"
                 >
-                  <Printer className="w-4 h-4 text-white" /> Generar Comanda
+                  <Printer className="w-4.5 h-4.5 text-white shrink-0" />
+                  <span>Generar Comanda</span>
                 </button>
               </div>
             ) : (
               /* Rol Cajero / Super Cajero / Admin */
-              <div className={`grid gap-2 ${["super_cajero", "admin"].includes(currentRole || currentUser?.role) ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   disabled={localItems.length === 0}
                   onClick={() => setShowPreview(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99]"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99] whitespace-nowrap min-h-[44px]"
                 >
-                  <Printer className="w-4 h-4 text-white" /> Imprimir Factura
+                  <Printer className="w-4 h-4 text-white shrink-0" />
+                  <span>Imprimir Factura</span>
                 </button>
 
                 <button
                   type="button"
                   disabled={localItems.length === 0}
                   onClick={handleCheckoutFromModal}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99]"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2.5 px-3 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99] whitespace-nowrap min-h-[44px]"
                 >
-                  <Receipt className="w-4 h-4 text-white" /> Cobrar
+                  <Receipt className="w-4 h-4 text-white shrink-0" />
+                  <span>Cobrar</span>
                 </button>
 
                 {["super_cajero", "admin"].includes(currentRole || currentUser?.role) && (
                   <button
                     type="button"
                     onClick={handleClearTable}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99]"
+                    disabled={localItems.length === 0}
+                    className="w-11 h-[44px] bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer shadow-sm active:scale-[0.99] shrink-0"
                     title="Cancelar/Eliminar Mesa Completa"
                   >
-                    <Trash2 className="w-4 h-4 text-white" /> Cancelar Mesa
+                    <Trash2 className="w-5 h-5 text-white" />
                   </button>
                 )}
               </div>

@@ -1530,6 +1530,14 @@ export const BarProvider = ({ children }) => {
       return;
     }
     const sTableId = String(tableId);
+    const targetTable = tables.find((t) => String(t.id) === sTableId);
+    const rawItems = targetTable?.items || [];
+    const formattedItems = rawItems.map((i) => ({
+      product_id: i.product?.id || i.productId || i.id,
+      product_name: i.product?.name || i.name || "Producto",
+      quantity: Number(i.quantity) || 1,
+    }));
+
     const actionId = "cancel_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
     purgeTableTimersAndWrites(sTableId);
 
@@ -1546,6 +1554,7 @@ export const BarProvider = ({ children }) => {
         userId: currentUser?.id,
         actionId,
         reason,
+        items: formattedItems,
       });
       setPendingSyncCount(getOfflineQueue().length);
       return;
@@ -1557,6 +1566,7 @@ export const BarProvider = ({ children }) => {
         p_user_id: currentUser?.id,
         p_action_id: actionId,
         p_reason: reason,
+        p_items: formattedItems.length > 0 ? formattedItems : null,
       });
 
       if (error) {
@@ -1579,6 +1589,7 @@ export const BarProvider = ({ children }) => {
         userId: currentUser?.id,
         actionId,
         reason,
+        items: formattedItems,
       });
       setPendingSyncCount(getOfflineQueue().length);
     }
