@@ -18,7 +18,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,webmanifest}'], // Evita pre-cachear 130MB de imágenes pesadas en el manifest inicial
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^https:\/\/.*\.supabase\.co/],
+        navigateFallbackAllowlist: [/^\/[^.]*$/],
+        navigateFallbackDenylist: [/^\/assets\//, /\.[a-z0-9]+$/i, /^\/api/, /^https:\/\/.*\.supabase\.co/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
