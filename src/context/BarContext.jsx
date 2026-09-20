@@ -1322,10 +1322,12 @@ export const BarProvider = ({ children }) => {
 
     try {
       // 1. Insert Invoice
-      await supabase.from("invoices").insert(invoicePayload);
+      const { error: invErr } = await supabase.from("invoices").insert(invoicePayload);
+      if (invErr) throw invErr;
 
       // 2. Insert Invoice Items
-      await supabase.from("invoice_items").insert(invoiceItemsPayload);
+      const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItemsPayload);
+      if (itemsErr) throw itemsErr;
 
       // 3. Free table and delete orders
       await supabase.from("tables").delete().eq("id", sTableId);
@@ -1427,8 +1429,11 @@ export const BarProvider = ({ children }) => {
     }
 
     try {
-      await supabase.from("invoices").insert(invoicePayload);
-      await supabase.from("invoice_items").insert(invoiceItemsPayload);
+      const { error: invErr } = await supabase.from("invoices").insert(invoicePayload);
+      if (invErr) throw invErr;
+
+      const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItemsPayload);
+      if (itemsErr) throw itemsErr;
 
       fetchData(true);
       return invoiceId;
