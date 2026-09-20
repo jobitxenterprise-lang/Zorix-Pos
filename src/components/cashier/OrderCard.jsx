@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { DollarSign, Clock, Users, Edit, Trash2, MapPin, User, CheckCircle } from 'lucide-react';
 import { MdLocalBar, MdTableRestaurant } from "react-icons/md";
 import { useBar } from '../../context/BarContext';
-import { showConfirm, showError } from '../../utils/swal';
+import { showConfirm, showError, showInputPrompt } from '../../utils/swal';
 import { IoEye } from "react-icons/io5";
 
 export const OrderCard = ({ table, onEdit }) => {
-  const { deleteTable, payInvoice } = useBar();
+  const { deleteTable, payInvoice, cancelTableOrder, currentRole, currentUser } = useBar();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isPending = table.status === 'pendiente_pago';
   const total = table.items ? table.items.reduce((sum, item) => sum + (item.product?.price || item.price || 0) * item.quantity, 0) : 0;
+  const canCancel = ['super_cajero', 'admin'].includes(currentRole) || ['super_cajero', 'admin'].includes(currentUser?.role);
 
   // Manejador del cobro directo
   const handleDirectCheckout = async () => {
@@ -33,16 +34,17 @@ export const OrderCard = ({ table, onEdit }) => {
     }
   };
 
-  // Manejador para eliminar mesa previa confirmación
-  const handleDeleteTable = async () => {
-    const confirmed = await showConfirm({
-      title: "Eliminar Mesa",
-      text: `¿Estás seguro de eliminar ${table.name}? Esta acción no se puede deshacer.`,
-      confirmButtonText: "Sí, eliminar",
-      icon: "warning"
+  // Manejador para cancelar/eliminar mesa previa justificación
+  const handleCancelTable = async (e) => {
+    e.stopPropagation();
+    const reason = await showInputPrompt({
+      title: "Cancelar Mesa / Cuenta",
+      text: `Ingresa el motivo para eliminar/cancelar la cuenta de ${table.name}:`,
+      inputPlaceholder: "Ej. Cliente canceló, cobro rechazado...",
+      required: true
     });
-    if (confirmed) {
-      deleteTable(table.id);
+    if (reason !== null) {
+      await cancelTableOrder(table.id, reason);
     }
   };
 
@@ -78,36 +80,10 @@ export const OrderCard = ({ table, onEdit }) => {
           </span>
         </div>
         </div>
-
-        {/* Mesero Asignado */}
-        
       </div>
-
-      {/* Lista Desplegable de Productos <div className="py-3 flex-1">
-        <div className="max-h-[160px] overflow-y-auto pr-1 custom-scrollbar space-y-1.5">
-          {isEmpty ? (
-            <p className="text-xs text-slate-400 italic text-center py-4">Sin productos en este pedido</p>
-          ) : (
-            table.items.map((item, idx) => (
-              <div key={idx} className="flex justify-between items-center text-xs p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-extrabold text-blue-700 shrink-0">{item.quantity}x</span>
-                  <span className="font-semibold text-slate-800 truncate">{item.product?.name || item.name}</span>
-                </div>
-                <span className="font-bold text-slate-900 shrink-0 ml-2">
-                  C${((item.product?.price || item.price || 0) * item.quantity).toFixed(2)}
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-      </div> */}
-      
 
       {/* Pie de Tarjeta: Total y Botones de Acción */}
       <div className="pt-3 border-t border-slate-100 space-y-3">
-       
-
         <div className="flex items-center gap-2">
           {onEdit && (
             <button
@@ -120,9 +96,19 @@ export const OrderCard = ({ table, onEdit }) => {
             </button>
           )}
 
+          {canCancel && (
+            <button
+              type="button"
+              onClick={handleCancelTable}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold rounded-xl text-xs transition-all cursor-pointer border border-red-200 active:scale-95"
+              title="Cancelar/Eliminar Mesa"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Eliminar</span>
+            </button>
+          )}
         </div>
       </div>
-
     </div>
   );
 };

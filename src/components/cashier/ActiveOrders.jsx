@@ -59,7 +59,7 @@ export const ActiveOrders = () => {
           <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">Supervisión, edición y cobro directo en tiempo real</p>
         </div>
 
-        {currentRole !== 'cajero' && (
+        {currentRole === 'admin' && (
           <div className="flex items-center gap-2 sm:gap-3 ml-auto shrink-0">
             <button
               onClick={handleCreateBarAccount}

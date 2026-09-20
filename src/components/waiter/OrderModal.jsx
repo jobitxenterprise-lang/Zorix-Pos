@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useBar } from "../../context/BarContext";
-import { showConfirm, showError } from "../../utils/swal";
+import { showConfirm, showError, showInputPrompt } from "../../utils/swal";
 import { ProductCatalog } from "./ProductCatalog";
 import { InvoicePreview } from "./InvoicePreview";
 import { ComandaPreview } from "./ComandaPreview";
@@ -186,21 +186,22 @@ export const OrderModal = ({ table, onClose }) => {
   };
 
   const handleClearTable = async () => {
-    if (isMesero) {
-      setErrorMsg("El rol Mesero no tiene permiso para vaciar o cancelar el pedido.");
+    const canCancel = ["super_cajero", "admin"].includes(currentUser?.role) || ["super_cajero", "admin"].includes(currentRole);
+    if (!canCancel) {
+      setErrorMsg("El rol Cajero o Mesero no tiene permiso para vaciar o cancelar el pedido.");
       setTimeout(() => setErrorMsg(""), 4000);
       return;
     }
-    const confirmed = await showConfirm({
-      title: "Cancelar Pedido",
-      text: `¿Estás seguro de cancelar el pedido de la ${tableName || table.name}?`,
-      confirmButtonText: "Sí, cancelar pedido",
-      icon: "warning"
+    const reason = await showInputPrompt({
+      title: "Cancelar Mesa / Cuenta",
+      text: `Ingresa el motivo para cancelar la cuenta de ${tableName || table.name}:`,
+      inputPlaceholder: "Ej. Cliente se retiró, cobro rechazado...",
+      required: true
     });
-    if (confirmed) {
+    if (reason !== null) {
       setLocalItems([]);
       setLocalUnprinted([]);
-      cancelTableOrder(table.id);
+      await cancelTableOrder(table.id, reason);
       onClose();
     }
   };
@@ -394,8 +395,8 @@ export const OrderModal = ({ table, onClose }) => {
                 </button>
               </div>
             ) : (
-              /* Rol Cajero / Admin: 2 Botones: Imprimir Factura y Cobrar */
-              <div className="grid grid-cols-2 gap-2">
+              /* Rol Cajero / Super Cajero / Admin */
+              <div className={`grid gap-2 ${["super_cajero", "admin"].includes(currentRole || currentUser?.role) ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <button
                   type="button"
                   disabled={localItems.length === 0}
@@ -413,6 +414,17 @@ export const OrderModal = ({ table, onClose }) => {
                 >
                   <Receipt className="w-4 h-4 text-white" /> Cobrar
                 </button>
+
+                {["super_cajero", "admin"].includes(currentRole || currentUser?.role) && (
+                  <button
+                    type="button"
+                    onClick={handleClearTable}
+                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99]"
+                    title="Cancelar/Eliminar Mesa Completa"
+                  >
+                    <Trash2 className="w-4 h-4 text-white" /> Cancelar Mesa
+                  </button>
+                )}
               </div>
             )}
           </div>
