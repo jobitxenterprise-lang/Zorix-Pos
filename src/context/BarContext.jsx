@@ -1547,7 +1547,7 @@ export const BarProvider = ({ children }) => {
 
     const updatePayload = {
       closed_at: closeTimestamp,
-      closed_by: currentUser?.id,
+      closed_by: currentUser?.id || null,
       total_expected: shiftTotal,
       total_real: shiftTotal,
       total_counted_cash: actualCountedCash,
@@ -1566,27 +1566,31 @@ export const BarProvider = ({ children }) => {
     try {
       // 1. Cerrar el turno actual
       if (currentShiftId) {
-        await supabase
+        const { error: closeErr } = await supabase
           .from("shifts")
           .update(updatePayload)
           .eq("id", currentShiftId);
+        if (closeErr) throw closeErr;
       }
 
       // 2. Cerrar preventivamente cualquier otro turno huérfano que haya quedado sin cerrar
-      await supabase
+      const { error: orphanErr } = await supabase
         .from("shifts")
         .update({
           closed_at: closeTimestamp,
-          closed_by: currentUser?.id,
+          closed_by: currentUser?.id || null,
           total_real: 0,
           total_expected: 0,
         })
         .is("closed_at", null);
+      if (orphanErr) console.warn("Aviso al cerrar turnos huérfanos:", orphanErr);
 
       // 3. Reasignar cualquier factura huérfana de este corte al ID del turno cerrado
-      const orphanInvoices = paidInvoices.filter((i) => !i.shiftId || (currentShiftId && i.shiftId !== currentShiftId));
-      for (const inv of orphanInvoices) {
-        await supabase.from("invoices").update({ shift_id: currentShiftId }).eq("id", inv.id);
+      if (currentShiftId) {
+        const orphanInvoices = paidInvoices.filter((i) => !i.shiftId || i.shiftId !== currentShiftId);
+        for (const inv of orphanInvoices) {
+          await supabase.from("invoices").update({ shift_id: currentShiftId }).eq("id", inv.id);
+        }
       }
 
       // 4. Dejar el sistema en estado Caja Cerrada (sin auto-apertura silenciosa)
@@ -1594,11 +1598,13 @@ export const BarProvider = ({ children }) => {
       setShiftStartTime(null);
       setOpeningCash(0);
       setPaidInvoices([]);
+      setExpenses([]);
       setHistoryLoaded(false); // Invalida el caché para que al ver historial incluya el nuevo corte
-      fetchData(true);
+      await fetchData(true);
       return { success: true };
     } catch (closeErr) {
-      console.error("Error al cerrar turno:", closeErr);
+      console.error("Error al cerrar turno en Supabase:", closeErr);
+      showError("Error al Cerrar Turno", closeErr?.message || "Ocurrió un error al actualizar el estado del turno en la base de datos.");
       throw closeErr;
     }
   };
