@@ -12,6 +12,7 @@ export const printShiftCloseReceipt = ({
   products = [],
   categories = [],
   shiftId = "",
+  openingCash = 0,
 }) => {
   const totalInvoicesCount = invoices.length;
   const totalCash = invoices
@@ -32,7 +33,7 @@ export const printShiftCloseReceipt = ({
     )
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-  const expectedCash = totalCash - totalCashExpenses;
+  const expectedCash = Number(openingCash || 0) + totalCash - totalCashExpenses;
 
   const now = endTime ? new Date(endTime) : new Date();
   const dateStr = now.toLocaleDateString("es-NI", {
@@ -237,7 +238,11 @@ export const printShiftCloseReceipt = ({
         <strong>${totalInvoicesCount}</strong>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span>Ventas Efectivo:</span>
+        <span>(+) Fondo Inicial:</span>
+        <strong>C$${Number(openingCash || 0).toFixed(2)}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span>(+) Ventas Efectivo:</span>
         <strong>C$${totalCash.toFixed(2)}</strong>
       </div>
       <div style="display: flex; justify-content: space-between;">

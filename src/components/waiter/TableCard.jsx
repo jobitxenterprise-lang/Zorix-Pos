@@ -7,6 +7,8 @@ import { showConfirm } from '../../utils/swal';
 export const TableCard = ({ table, onClick }) => {
   const { deleteTable, currentRole, currentUser } = useBar();
   const isMesero = currentRole === 'mesero' || currentUser?.role === 'mesero';
+  const isCajero = currentRole === 'cajero' || currentUser?.role === 'cajero';
+  const canDeleteTable = !isMesero && !isCajero && ['super_cajero', 'admin'].includes(currentRole || currentUser?.role);
   const isLockedForWaiter = isMesero && Boolean(table.assignedWaiterId) && table.assignedWaiterId !== currentUser?.id;
 
   const isOccupied = table.status === 'ocupada';
@@ -53,7 +55,7 @@ export const TableCard = ({ table, onClick }) => {
           </div>
         </div>
 
-        {!isMesero && !isLockedForWaiter && (
+        {canDeleteTable && !isLockedForWaiter && (
           <button
             onClick={async (e) => {
               e.stopPropagation();

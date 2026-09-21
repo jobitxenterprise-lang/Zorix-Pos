@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
 import { showAlert } from '../../utils/swal';
-import { X, DollarSign, CreditCard, Banknote, ArrowRight, Receipt } from 'lucide-react';
+import { X, DollarSign, CreditCard, Banknote, ArrowRight, Receipt, Loader2 } from 'lucide-react';
 import { InvoicePreview } from '../waiter/InvoicePreview';
 
 export const PaymentModal = ({ table, onClose }) => {
@@ -11,6 +11,7 @@ export const PaymentModal = ({ table, onClose }) => {
   const [receivedAmount, setReceivedAmount] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [snapshotData, setSnapshotData] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const baseTotalCordobas = table.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
   const isCard = paymentMethod === 'Tarjeta';
@@ -31,7 +32,9 @@ export const PaymentModal = ({ table, onClose }) => {
     missingAmount = numericReceived < totalDolares ? totalDolares - numericReceived : 0;
   }
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+
     if (paymentMethod === 'Efectivo') {
       if (numericReceived <= 0) {
         return showAlert({ title: "Monto Requerido", text: "Debes ingresar el monto con el que está pagando el cliente.", icon: "warning" });
@@ -45,22 +48,31 @@ export const PaymentModal = ({ table, onClose }) => {
       }
     }
 
-    const paymentDetails = {
-       method: paymentMethod,
-       currency: currency,
-       received: numericReceived,
-       change: changeAmount,
-       reference: referenceNumber
-    };
+    try {
+      setIsSubmitting(true);
+      const res = await payInvoice(table.id, paymentMethod, referenceNumber);
 
-    setSnapshotData({
-      table: { ...table },
-      items: [...table.items],
-      customerName: table.customerName,
-      paymentDetails
-    });
+      if (res && res.success !== false) {
+        const paymentDetails = {
+           method: paymentMethod,
+           currency: currency,
+           received: numericReceived,
+           change: changeAmount,
+           reference: referenceNumber
+        };
 
-    payInvoice(table.id, paymentMethod, referenceNumber);
+        setSnapshotData({
+          table: { ...table },
+          items: [...table.items],
+          customerName: table.customerName,
+          paymentDetails
+        });
+      }
+    } catch (err) {
+      console.error("Error al procesar pago:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (snapshotData) {
@@ -249,10 +261,24 @@ export const PaymentModal = ({ table, onClose }) => {
         <div className="bg-slate-50 p-6 border-t border-slate-200 shrink-0">
           <button
             onClick={handleConfirm}
-            className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20"
+            disabled={isSubmitting}
+            className={`w-full py-4 text-white rounded-xl font-black text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 ${
+              isSubmitting
+                ? 'bg-emerald-700 opacity-80 cursor-wait'
+                : 'bg-emerald-600 hover:bg-emerald-500 cursor-pointer'
+            }`}
           >
-            Confirmar y Cerrar Mesa
-            <ArrowRight className="w-5 h-5" />
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-6 h-6 animate-spin text-white" />
+                <span>Procesando Cobro...</span>
+              </>
+            ) : (
+              <>
+                <span>Confirmar y Cerrar Mesa</span>
+                <ArrowRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </div>
 

@@ -93,11 +93,12 @@ export const OrderModal = ({ table, onClose }) => {
   // Reducir o eliminar cantidad de forma atómica
   const handleQuantity = (productId, delta) => {
     if (delta < 0 && isMesero) {
+      const sTargetId = String(productId);
       const origItem = (table.items || []).find(
-        (i) => String(i.product?.id) === String(productId)
+        (i) => String(i.product?.id || i.productId || i.id) === sTargetId
       );
       const currentItem = localItems.find(
-        (i) => String(i.product?.id) === String(productId)
+        (i) => String(i.product?.id || i.productId || i.id) === sTargetId
       );
       if (origItem && currentItem && currentItem.quantity <= origItem.quantity) {
         setErrorMsg("Un mesero no puede anular productos ni reducir cantidades guardadas. Solicita autorización de Cajero.");
@@ -308,8 +309,9 @@ export const OrderModal = ({ table, onClose }) => {
               </div>
             ) : (
               localItems.map((item) => {
+                const itemProdId = String(item.product?.id || item.productId || item.id || '');
                 const origItem = (table.items || []).find(
-                  (i) => String(i.product?.id) === String(item.product?.id)
+                  (i) => String(i.product?.id || i.productId || i.id || '') === itemProdId
                 );
                 const cannotReduce = isMesero && origItem && item.quantity <= origItem.quantity;
 

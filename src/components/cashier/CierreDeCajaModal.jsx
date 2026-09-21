@@ -12,7 +12,8 @@ import {
   Lock, 
   Calculator,
   RotateCcw,
-  FileText
+  FileText,
+  ArrowRightLeft
 } from 'lucide-react';
 
 const DENOMINATIONS = [1000, 500, 200, 100, 50, 20, 10];
@@ -27,6 +28,7 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
     products = [], 
     categories = [], 
     currentShiftId = '',
+    openingCash = 0,
     exchangeRate = 36.62
   } = context;
 
@@ -37,9 +39,9 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
 
   // Estado de monto directo en Dólares ($ USD)
   const [usdAmount, setUsdAmount] = useState('');
-
-  // Estado de monto directo de Vouchers de Tarjetas (C$ POS)
-  const [cardAmount, setCardAmount] = useState('');
+  
+  // Estado de monto por Transferencia (C$) (Informativo, no es efectivo físico)
+  const [transferAmount, setTransferAmount] = useState('');
   
   // Notas / Justificación de Descuadre
   const [notes, setNotes] = useState('');
@@ -53,21 +55,12 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
   const safeExpenses = useMemo(() => Array.isArray(context.expenses) ? context.expenses : [], [context.expenses]);
   const totalInvoicesCount = safeInvoices.length;
 
-  const rawCashSales = useMemo(() => 
-    safeInvoices
-      .filter(i => i && i.paymentMethod === 'Efectivo')
-      .reduce((sum, inv) => sum + (Number(inv?.total) || 0), 0),
+  // Ventas totales del turno en el sistema
+  const totalSalesSystem = useMemo(() => 
+    safeInvoices.reduce((sum, inv) => sum + (Number(inv?.total) || 0), 0),
     [safeInvoices]
   );
-
-  const totalCardSystem = useMemo(() => 
-    safeInvoices
-      .filter(i => i && i.paymentMethod !== 'Efectivo')
-      .reduce((sum, inv) => sum + (Number(inv?.total) || 0), 0),
-    [safeInvoices]
-  );
-
-  const totalSalesSystem = rawCashSales + totalCardSystem;
+  const rawCashSales = totalSalesSystem;
 
   // Gastos pagados en efectivo del turno activo únicamente
   const shiftCashExpenses = useMemo(() => {
@@ -82,8 +75,8 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
   }, [safeExpenses, currentShiftId]);
 
-  // Efectivo esperado real (SIN usar Math.max(0, ...), permitiendo valores negativos si los gastos superan las ventas)
-  const expectedCashSystem = rawCashSales - shiftCashExpenses;
+  // Efectivo esperado real (Fondo Inicial + Ventas Totales - Gastos Efectivo)
+  const expectedCashSystem = Number(openingCash || 0) + totalSalesSystem - shiftCashExpenses;
 
   // 2. Cálculos de Arqueo Físico en Vivo
   const countedNioFromBills = useMemo(() => {
@@ -97,17 +90,12 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
   const countedUsdInNio = countedUsdValue * (Number(exchangeRate) || 36.62);
   const totalPhysicalCash = countedNioFromBills + countedUsdInNio;
 
-  const countedCardValue = Number(cardAmount) || 0;
-  const totalPhysicalDeclared = totalPhysicalCash + countedCardValue;
-
-  // 3. Diferencias y Cuadre por Método de Pago
+  // 3. Diferencias y Cuadre de Caja
   const cashDifference = totalPhysicalCash - expectedCashSystem;
-  const cardDifference = countedCardValue - totalCardSystem;
-  const netDifference = totalPhysicalDeclared - totalSalesSystem;
 
-  const isExactMatch = Math.abs(cashDifference) < 0.01 && Math.abs(cardDifference) < 0.01;
-  const isFaltante = netDifference < -0.01 || cashDifference < -0.01 || cardDifference < -0.01;
-  const isSobrante = (netDifference > 0.01 || cashDifference > 0.01 || cardDifference > 0.01) && !isFaltante;
+  const isExactMatch = Math.abs(cashDifference) < 0.01;
+  const isFaltante = cashDifference < -0.01;
+  const isSobrante = cashDifference > 0.01;
 
   if (!isOpen) return null;
 
@@ -119,7 +107,7 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
   const handleResetCounts = () => {
     setCounts(DENOMINATIONS.reduce((acc, denom) => ({ ...acc, [denom]: '' }), {}));
     setUsdAmount('');
-    setCardAmount('');
+    setTransferAmount('');
     setNotes('');
     setErrorMsg('');
   };
@@ -146,10 +134,13 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
           products: Array.isArray(products) ? products : [],
           categories: Array.isArray(categories) ? categories : [],
           shiftId: currentShiftId || '',
+          openingCash: Number(openingCash || 0),
         });
       } catch (printErr) {
         console.warn('⚠️ No se pudo disparar la impresión del ticket:', printErr);
       }
+
+      const valTransfer = Number(transferAmount) || 0;
 
       // 2. Desglose para auditoría
       const cashCountDetails = {
@@ -161,14 +152,16 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
         totalPhysicalCash,
         rawCashSales,
         shiftCashExpenses,
+        openingCash: Number(openingCash || 0),
         expectedCashSystem,
         cashDifference,
-        cardPhysicalAmount: countedCardValue,
-        expectedCardSystem: totalCardSystem,
-        cardDifference,
-        totalPhysicalDeclared,
+        cardPhysicalAmount: 0,
+        expectedCardSystem: 0,
+        cardDifference: 0,
+        transferAmount: valTransfer,
+        totalPhysicalDeclared: totalPhysicalCash,
         totalSalesSystem,
-        netDifference,
+        netDifference: cashDifference,
         difference: cashDifference,
       };
 
@@ -278,62 +271,59 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
               })}
             </div>
 
-            {/* Campo para Dólares ($ USD) */}
-            <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200">
-                  <DollarSign className="w-6 h-6" />
+            {/* Grid 3 Columnas para Otros Canales (Dólares, Tarjeta, Transferencias) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+              {/* Campo Dólares */}
+              <div className="p-3 bg-slate-50 border-2 border-slate-200 hover:border-emerald-300 rounded-2xl flex flex-col justify-between gap-2 transition-all shadow-xs">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 shrink-0">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-extrabold text-slate-800 block truncate">Dólares ($ USD)</span>
+                    <span className="text-[10px] text-slate-500 font-medium block truncate">Tasa: C${Number(exchangeRate || 36.62).toFixed(2)}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-sm font-extrabold text-slate-800 block">Efectivo en Dólares ($ USD)</span>
-                  <span className="text-xs text-slate-500 font-medium">Tasa de Cambio: C${Number(exchangeRate || 36.62).toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3">
-                <div className="relative w-36">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-600 font-extrabold text-base">$</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={usdAmount}
-                    onChange={(e) => setUsdAmount(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2.5 bg-white border-2 border-slate-300 focus:border-emerald-600 rounded-xl font-extrabold text-slate-900 text-base text-right focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                </div>
-                <div className="text-right min-w-[85px]">
-                  <span className="text-xs font-black text-emerald-700 block">
-                    C${countedUsdInNio.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <div className="relative flex-1">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-emerald-600 font-extrabold text-sm">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={usdAmount}
+                      onChange={(e) => setUsdAmount(e.target.value)}
+                      className="w-full pl-6 pr-2 py-1.5 bg-white border-2 border-slate-300 focus:border-emerald-600 rounded-xl font-extrabold text-slate-900 text-sm text-right focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                  </div>
+                  <span className="text-[11px] font-black text-emerald-700 shrink-0">
+                    C${countedUsdInNio.toFixed(0)}
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* Campo para Vouchers / Bauchers de Tarjetas (POS) */}
-            <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl border border-blue-200">
-                  <CreditCard className="w-6 h-6" />
+              {/* Campo Ingresos por Transferencia */}
+              <div className="p-3 bg-slate-50 border-2 border-purple-200 hover:border-purple-400 rounded-2xl flex flex-col justify-between gap-2 transition-all shadow-xs">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-purple-100 text-purple-700 rounded-xl border border-purple-200 shrink-0">
+                    <ArrowRightLeft className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-extrabold text-slate-800 block truncate">Transferencia</span>
+                    <span className="text-[10px] text-purple-600 font-semibold block truncate">Informativo (C$)</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-sm font-extrabold text-slate-800 block">Total en Tarjeta </span>
-                
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3">
-                <div className="relative w-36">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-600 font-extrabold text-base">C$</span>
+                <div className="relative mt-1">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-purple-600 font-extrabold text-sm">C$</span>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
                     placeholder="0.00"
-                    value={cardAmount}
-                    onChange={(e) => setCardAmount(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-white border-2 border-slate-300 focus:border-blue-600 rounded-xl font-extrabold text-slate-900 text-base text-right focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    value={transferAmount}
+                    onChange={(e) => setTransferAmount(e.target.value)}
+                    className="w-full pl-8 pr-2 py-1.5 bg-white border-2 border-slate-300 focus:border-purple-600 rounded-xl font-extrabold text-slate-900 text-sm text-right focus:outline-none transition-all shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
@@ -355,17 +345,19 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                   <span className="font-extrabold text-slate-900">{totalInvoicesCount}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span>Ventas Efectivo (Sistema):</span>
-                  <span className="font-extrabold text-emerald-700">C${rawCashSales.toFixed(2)}</span>
+                  <span>(+) Fondo Inicial de Caja:</span>
+                  <span className="font-extrabold text-blue-900">C${Number(openingCash || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span>Ventas Tarjeta (Sistema):</span>
-                  <span className="font-extrabold text-blue-600">C${totalCardSystem.toFixed(2)}</span>
+                  <span>(+) Ventas Efectivo (Sistema):</span>
+                  <span className="font-extrabold text-emerald-700">C${totalSalesSystem.toFixed(2)}</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-slate-600">
-                  <span>Vouchers Tarjeta (Físico):</span>
-                  <span className="font-extrabold text-blue-800">C${countedCardValue.toFixed(2)}</span>
-                </div>
+                {Number(transferAmount) > 0 && (
+                  <div className="flex items-center justify-between text-xs text-purple-700 font-medium">
+                    <span>Ingresos por Transferencia (Informativo):</span>
+                    <span className="font-extrabold text-purple-800">C${(Number(transferAmount) || 0).toFixed(2)}</span>
+                  </div>
+                )}
                 {shiftCashExpenses > 0 && (
                   <div className="flex items-center justify-between text-xs text-red-600 font-medium">
                     <span>(-) Gastos Pagados (Efectivo):</span>
@@ -390,11 +382,6 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                 <span className="text-2xl font-black text-emerald-600 block">
                   C${totalPhysicalCash.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
-                {countedCardValue > 0 && (
-                  <span className="text-xs font-extrabold text-blue-900 block pt-1 border-t border-slate-100">
-                    + C${countedCardValue.toFixed(2)}Total en Tarjetas : C${totalPhysicalDeclared.toFixed(2)}
-                  </span>
-                )}
               </div>
 
               {/* Badges de Cuadre / Descuadre */}
@@ -404,7 +391,7 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                     <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0" />
                     <div>
                       <span className="font-extrabold text-xs block uppercase">Caja Cuadrada Exacta</span>
-                      <span className="text-[11px] text-emerald-700">Tanto el efectivo como las tarjetas coinciden con el sistema.</span>
+                      <span className="text-[11px] text-emerald-700">El efectivo físico coincide exactamente con el sistema.</span>
                     </div>
                   </div>
                 )}
@@ -420,16 +407,11 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                         • Faltante en Efectivo: C${Math.abs(cashDifference).toFixed(2)}
                       </span>
                     )}
-                    {cardDifference < -0.01 && (
-                      <span className="text-xs font-bold text-red-700 block">
-                        • Faltante en Tarjetas: C${Math.abs(cardDifference).toFixed(2)}
-                      </span>
-                    )}
                   </div>
                 )}
 
                 {isSobrante && (
-                  <div className="p-3.5 bg-blue-50 border border-blue-200 text-blue-950 rounded-xl flex flex-col gap-1 shadow-xs">
+                  <div className="p-3.5 bg-blue-50 border border-blue-200 text-blue-950 rounded-xl flex flex-col gap-1.5 shadow-xs">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="w-5 h-5 text-blue-700 shrink-0" />
                       <span className="font-extrabold text-xs uppercase">Sobrante Detectado</span>
@@ -439,11 +421,51 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
                         • Sobrante en Efectivo: +C${cashDifference.toFixed(2)}
                       </span>
                     )}
-                    {cardDifference > 0.01 && (
-                      <span className="text-xs font-bold text-blue-900 block">
-                        • Sobrante en Tarjetas: +C${cardDifference.toFixed(2)}
-                      </span>
-                    )}
+
+                    {/* Explicación de sobrante por transferencia cuando existe sobrante de efectivo y transferencia ingresada */}
+                    {cashDifference > 0.01 && Number(transferAmount) > 0 && (() => {
+                      const valTrans = Number(transferAmount) || 0;
+                      const diffCash = cashDifference;
+                      
+                      if (Math.abs(valTrans - diffCash) < 0.01) {
+                        return (
+                          <div className="mt-1 pt-2 border-t border-blue-200 text-xs text-emerald-800 font-semibold space-y-0.5">
+                            <div className="flex items-center gap-1 font-bold text-emerald-900">
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                              <span>Sobrante Explicado por Transferencia</span>
+                            </div>
+                            <p className="m-0 text-[11px] text-emerald-700">
+                              El sobrante de C${diffCash.toFixed(2)} queda explicado en su totalidad por la transferencia ingresada de C${valTrans.toFixed(2)}.
+                            </p>
+                          </div>
+                        );
+                      } else if (valTrans < diffCash) {
+                        const pendiente = diffCash - valTrans;
+                        return (
+                          <div className="mt-1 pt-2 border-t border-blue-200 text-xs text-amber-900 font-semibold space-y-0.5">
+                            <div className="flex items-center gap-1 font-bold text-amber-900">
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                              <span>Justificación Parcial por Transferencia</span>
+                            </div>
+                            <p className="m-0 text-[11px] text-amber-800">
+                              De los C${diffCash.toFixed(2)} de sobrante, C${valTrans.toFixed(2)} corresponden a la transferencia ingresada. Quedan <strong className="text-red-700">C${pendiente.toFixed(2)}</strong> pendientes de justificar.
+                            </p>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="mt-1 pt-2 border-t border-blue-200 text-xs text-blue-950 font-semibold space-y-0.5">
+                            <div className="flex items-center gap-1 font-bold text-blue-900">
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                              <span>Transferencia Cubre Sobrante</span>
+                            </div>
+                            <p className="m-0 text-[11px] text-blue-800">
+                              La transferencia declarada (C${valTrans.toFixed(2)}) cubre la totalidad del sobrante (C${diffCash.toFixed(2)}).
+                            </p>
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                 )}
               </div>
@@ -505,3 +527,4 @@ export const CierreDeCajaModal = ({ isOpen, onClose, onShiftClosed }) => {
     </div>
   );
 };
+

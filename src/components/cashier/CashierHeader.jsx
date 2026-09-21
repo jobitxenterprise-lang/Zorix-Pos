@@ -4,8 +4,8 @@ import { FaCashRegister } from "react-icons/fa";
 import { useBar } from '../../context/BarContext';
 import { CancellationsReportModal } from '../common/CancellationsReportModal';
 
-export const CashierHeader = () => {
-  const { currentUser, logout, isOnline, pendingSyncCount, syncOfflineQueue } = useBar();
+export const CashierHeader = ({ onOpenAperturaModal }) => {
+  const { currentUser, logout, isOnline, pendingSyncCount, syncOfflineQueue, currentShiftId } = useBar();
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   return (
@@ -16,10 +16,25 @@ export const CashierHeader = () => {
           <div className="bg-blue-950 text-white p-1.5 sm:p-2 rounded-xl font-bold flex items-center justify-center shrink-0 shadow-sm">
             <FaCashRegister className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex items-center gap-2">
             <h1 className="text-base sm:text-xl md:text-2xl font-bold font-serif tracking-tight text-blue-950 m-0 truncate">
-              Caja <span className="text-blue-950 font-sans text-xs sm:text-sm font-bold bg-blue-50 px-2.5 py-0.5 rounded-full ml-1 border border-blue-200">Turno Activo</span>
+              Caja
             </h1>
+            <span className={`font-sans text-xs sm:text-sm font-bold px-2.5 py-0.5 rounded-full border ${
+              currentShiftId
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-rose-50 text-rose-700 border-rose-200'
+            }`}>
+              {currentShiftId ? 'Turno Activo' : 'Caja Cerrada'}
+            </span>
+            {!currentShiftId && onOpenAperturaModal && (
+              <button
+                onClick={onOpenAperturaModal}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold px-3 py-1 rounded-xl transition-all shadow-xs cursor-pointer"
+              >
+                Abrir Caja
+              </button>
+            )}
           </div>
         </div>
 

@@ -40,6 +40,7 @@ export const BarProvider = ({ children }) => {
   const [exchangeRate, setExchangeRate] = useState(36.62);
   const [currentShiftId, setCurrentShiftId] = useState(null);
   const [shiftStartTime, setShiftStartTime] = useState(null);
+  const [openingCash, setOpeningCash] = useState(0);
 
   // Estados para Carga de Historial Bajo Demanda (Admin / Reportes)
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -310,27 +311,12 @@ export const BarProvider = ({ children }) => {
 
       let activeShift = activeShiftsData && activeShiftsData.length > 0 ? activeShiftsData[0] : null;
 
-      // Si no existe ningún turno activo en Supabase, auto-inicializar un turno limpio
-      if (!activeShift && typeof navigator !== 'undefined' && navigator.onLine) {
-        try {
-          const { data: createdShift } = await supabase
-            .from("shifts")
-            .insert({ opened_by: currentUser?.id || null })
-            .select()
-            .single();
-          if (createdShift) {
-            activeShift = createdShift;
-          }
-        } catch (shiftErr) {
-          console.warn("No se pudo auto-iniciar turno de caja:", shiftErr);
-        }
-      }
-
       // 2. Fetch Invoices únicamente del turno activo
       currentShiftInvoices = [];
       if (activeShift) {
         setCurrentShiftId(activeShift.id);
         setShiftStartTime(activeShift.opened_at);
+        setOpeningCash(Number(activeShift.opening_cash || 0));
 
         const { data: invData } = await supabase
           .from("invoices")
@@ -379,6 +365,7 @@ export const BarProvider = ({ children }) => {
       } else {
         setCurrentShiftId(null);
         setShiftStartTime(null);
+        setOpeningCash(0);
         setPaidInvoices([]);
       }
 
@@ -1137,404 +1124,6 @@ export const BarProvider = ({ children }) => {
     return await openTable({ tableNumber: num, customerName: client });
   };
 
-  // Función para eliminar mesas creadas dinámicamente
-  const deleteTable = async (tableId, reason = "Eliminación de mesa") => {
-    return cancelTableOrder(tableId, reason);
-  };
-
-  const sendOrderToCashier = async (tableId, customerName) => {
-    const sTableId = String(tableId);
-
-    const currentShield = pendingSyncTablesRef.current.get(sTableId);
-    if (currentShield) {
-      pendingSyncTablesRef.current.set(sTableId, {
-        ...currentShield,
-        status: "pendiente_pago",
-        customerName,
-        timestamp: Date.now(),
-      });
-    }
-
-    // OPTIMISTIC UI
-    setTables((prev) =>
-      prev.map((t) =>
-        String(t.id) === sTableId
-          ? { ...t, status: "pendiente_pago", customerName }
-          : t,
-      ),
-    );
-
-    await supabase
-      .from("tables")
-      .update({
-        status: "pendiente_pago",
-        customer_name: customerName,
-      })
-      .eq("id", sTableId);
-  };
-
-  const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
-    if (currentRole === "mesero" || currentUser?.role === "mesero") {
-      showAlert({ title: "Permiso denegado", text: "El rol Mesero no tiene permiso para cobrar facturas.", icon: "error" });
-      return;
-    }
-    const sTableId = String(tableId);
-    purgeTableTimersAndWrites(sTableId);
-    
-    // IMPORTANTE: Actualizar el escudo a estado "libre" y vacío, en lugar de borrarlo.
-    // Así, cuando vuelva el internet, la mesa no parpadeará como "ocupada" mientras la cola se sincroniza.
-    const table = tables.find((t) => String(t.id) === sTableId);
-    if (!table || table.items.length === 0) return;
-
-    pendingSyncTablesRef.current.set(sTableId, {
-      items: [],
-      unprintedItems: [],
-      customerName: "",
-      status: "libre",
-      isDeleted: true, // Las mesas cobradas desaparecen por completo de la vista activa
-      timestamp: Date.now(),
-    });
-
-    setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
-
-    const baseTotal = table.items.reduce(
-      (sum, item) => sum + item.product.price * item.quantity,
-      0,
-    );
-    const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
-    const invoiceId = `FAC-${Date.now()}`;
-
-    // Sin control de inventario: ningún cobro descuenta productos, incluidos paquetes.
-    const stockDeductions = [];
-
-    let activeShiftId = currentShiftId;
-    if (!activeShiftId && typeof navigator !== 'undefined' && navigator.onLine) {
-      try {
-        const { data: autoShift } = await supabase
-          .from("shifts")
-          .insert({ opened_by: currentUser?.id || null })
-          .select()
-          .single();
-        if (autoShift) {
-          activeShiftId = autoShift.id;
-          setCurrentShiftId(autoShift.id);
-          setShiftStartTime(autoShift.opened_at);
-        }
-      } catch (sErr) {
-        console.warn("Fallo auto-creación de turno en payInvoice:", sErr);
-      }
-    }
-
-    const actualWaiterName = table.assignedWaiterName || (currentUser?.role === 'mesero' ? currentUser?.name : 'Sin mesero');
-    const actualCashierName = currentUser?.name || 'Cajero';
-
-    const invoicePayload = {
-      id: invoiceId,
-      shift_id: activeShiftId,
-      table_name: table.name,
-      customer_name: table.customerName || "Cliente",
-      waiter_name: actualWaiterName,
-      cashier_name: actualCashierName,
-      total,
-      payment_method: paymentMethod,
-      transaction_id: transactionId,
-      created_at: new Date().toISOString(),
-    };
-
-    const invoiceItemsPayload = table.items.map((i) => ({
-      invoice_id: invoiceId,
-      product_name: i.product.name,
-      quantity: i.quantity,
-      price_at_sale: i.product.price,
-      cost_at_sale: i.product.cost || 0,
-    }));
-
-    // OPTIMISTIC LOCAL STATE UPDATE (La pantalla no se traba jamás)
-    if (table.isBar) {
-      setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
-    } else {
-      setTables((prev) =>
-        prev.map((t) =>
-          String(t.id) === sTableId
-            ? {
-                ...t,
-                status: "libre",
-                customerName: "",
-                assignedWaiterId: null,
-                createdAt: null,
-                items: [],
-                unprintedItems: [],
-              }
-            : t,
-        ),
-      );
-    }
-
-    // Agregar factura a las facturas pagadas locales inmediatamente
-    const newLocalInvoice = {
-      id: invoiceId,
-      shiftId: activeShiftId,
-      tableName: table.name,
-      customerName: table.customerName || "Cliente",
-      waiterName: actualWaiterName,
-      cashierName: actualCashierName,
-      total,
-      paymentMethod,
-      transactionId,
-      fullDate: invoicePayload.created_at,
-      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      items: table.items.map((i) => ({
-        name: i.product.name,
-        quantity: i.quantity,
-        price: Number(i.product.price),
-        cost: Number(i.product.cost || 0),
-        category: i.product.category,
-      })),
-    };
-    setPaidInvoices((prev) => [...prev, newLocalInvoice]);
-
-    // Enviar a Supabase o Encolar en Cola Offline
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      console.warn("📵 Sin conexión: Encolando cobro de factura en cola offline...");
-      enqueueOfflineAction('CREATE_INVOICE', {
-        invoice: invoicePayload,
-        invoiceItems: invoiceItemsPayload,
-        stockDeductions,
-        tableInfo: { id: sTableId, isBar: table.isBar }
-      });
-      setPendingSyncCount(getOfflineQueue().length);
-      return;
-    }
-
-    try {
-      // 1. Insert Invoice
-      const { error: invErr } = await supabase.from("invoices").insert(invoicePayload);
-      if (invErr) throw invErr;
-
-      // 2. Insert Invoice Items
-      const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItemsPayload);
-      if (itemsErr) throw itemsErr;
-
-      // 3. Free table and delete orders
-      await supabase.from("tables").delete().eq("id", sTableId);
-      await supabase.from("orders").delete().eq("table_id", sTableId);
-
-      fetchData(true);
-    } catch (err) {
-      console.error("Error al enviar factura a Supabase, encolando offline:", err);
-      enqueueOfflineAction('CREATE_INVOICE', {
-        invoice: invoicePayload,
-        invoiceItems: invoiceItemsPayload,
-        stockDeductions,
-        tableInfo: { id: sTableId, isBar: Boolean(table?.isBar) }
-      });
-      setPendingSyncCount(getOfflineQueue().length);
-    }
-  };
-
-  const payDirectInvoice = async ({
-    items = [],
-    customerName = "Cliente Mostrador",
-    paymentMethod = "Efectivo",
-    transactionId = "",
-  }) => {
-    if (!items || items.length === 0) return null;
-
-    const baseTotal = items.reduce(
-      (sum, item) => sum + (Number(item.product?.price || item.price || 0) * (Number(item.quantity) || 1)),
-      0
-    );
-    const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
-    const invoiceId = `FAC-${Date.now()}`;
-    const clientName = customerName && customerName.trim() ? customerName.trim() : "Cliente Mostrador";
-
-    // Sin control de inventario: las ventas directas tampoco descuentan stock.
-    const stockDeductions = [];
-
-    const actualCashierName = currentUser?.name || "Cajero";
-
-    const invoicePayload = {
-      id: invoiceId,
-      shift_id: currentShiftId,
-      table_name: "Venta al Día",
-      customer_name: clientName,
-      waiter_name: "Mostrador",
-      cashier_name: actualCashierName,
-      total,
-      payment_method: paymentMethod,
-      transaction_id: transactionId,
-      created_at: new Date().toISOString(),
-    };
-
-    const invoiceItemsPayload = items.map((i) => {
-      const p = i.product || i;
-      return {
-        invoice_id: invoiceId,
-        product_name: p.name,
-        quantity: Number(i.quantity) || 1,
-        price_at_sale: Number(p.price) || 0,
-        cost_at_sale: Number(p.cost || 0),
-      };
-    });
-
-    // Agregar factura a las facturas pagadas locales
-    const newLocalInvoice = {
-      id: invoiceId,
-      shiftId: currentShiftId,
-      tableName: "Venta al Día",
-      customerName: clientName,
-      waiterName: "Mostrador",
-      cashierName: actualCashierName,
-      total,
-      paymentMethod,
-      transactionId,
-      fullDate: invoicePayload.created_at,
-      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      items: items.map((i) => {
-        const p = i.product || i;
-        return {
-          name: p.name,
-          quantity: Number(i.quantity) || 1,
-          price: Number(p.price) || 0,
-          cost: Number(p.cost || 0),
-          category: p.category_id || p.category,
-        };
-      }),
-    };
-    setPaidInvoices((prev) => [...prev, newLocalInvoice]);
-
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      enqueueOfflineAction('CREATE_INVOICE', {
-        invoice: invoicePayload,
-        invoiceItems: invoiceItemsPayload,
-        stockDeductions,
-        tableInfo: { id: `direct_${Date.now()}`, isBar: false }
-      });
-      setPendingSyncCount(getOfflineQueue().length);
-      return invoiceId;
-    }
-
-    try {
-      const { error: invErr } = await supabase.from("invoices").insert(invoicePayload);
-      if (invErr) throw invErr;
-
-      const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItemsPayload);
-      if (itemsErr) throw itemsErr;
-
-      fetchData(true);
-      return invoiceId;
-    } catch (err) {
-      console.error("Error al registrar venta directa en Supabase:", err);
-      enqueueOfflineAction('CREATE_INVOICE', {
-        invoice: invoicePayload,
-        invoiceItems: invoiceItemsPayload,
-        stockDeductions,
-        tableInfo: { id: `direct_${Date.now()}`, isBar: false }
-      });
-      setPendingSyncCount(getOfflineQueue().length);
-      return invoiceId;
-    }
-  };
-
-  const closeShift = async ({
-    cashCountDetails = null,
-    totalRealCounted = null,
-    notes = "",
-  } = {}) => {
-    if (!currentShiftId && paidInvoices.length === 0) return;
-    const shiftTotal = paidInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
-    const rawCashSales = paidInvoices
-      .filter((inv) => inv.paymentMethod === "Efectivo")
-      .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
-
-    const shiftCashExpenses = expenses
-      .filter(
-        (e) =>
-          e &&
-          e.isPaid !== false &&
-          (e.paymentMethod === "Efectivo" || !e.paymentMethod) &&
-          e.shiftId &&
-          String(e.shiftId) === String(currentShiftId)
-      )
-      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-
-    const totalCashExpected = rawCashSales - shiftCashExpenses;
-
-    const actualCountedCash = totalRealCounted !== null && totalRealCounted !== undefined
-      ? Number(totalRealCounted)
-      : totalCashExpected;
-
-    const cashDifference = actualCountedCash - totalCashExpected;
-    const closeTimestamp = new Date().toISOString();
-
-    const updatePayload = {
-      closed_at: closeTimestamp,
-      closed_by: currentUser?.id,
-      total_expected: shiftTotal,
-      total_real: shiftTotal,
-      total_counted_cash: actualCountedCash,
-      cash_difference: cashDifference,
-    };
-
-    if (cashCountDetails) {
-      updatePayload.cash_breakdown = {
-        ...cashCountDetails,
-        notes: notes || "",
-        expectedCash: totalCashExpected,
-        difference: cashDifference,
-      };
-    }
-
-    try {
-      // 1. Cerrar el turno actual
-      if (currentShiftId) {
-        await supabase
-          .from("shifts")
-          .update(updatePayload)
-          .eq("id", currentShiftId);
-      }
-
-      // 2. Cerrar preventivamente cualquier otro turno huérfano que haya quedado sin cerrar
-      await supabase
-        .from("shifts")
-        .update({
-          closed_at: closeTimestamp,
-          closed_by: currentUser?.id,
-          total_real: 0,
-          total_expected: 0,
-        })
-        .is("closed_at", null);
-
-      // 3. Reasignar cualquier factura huérfana de este corte al ID del turno cerrado
-      const orphanInvoices = paidInvoices.filter((i) => !i.shiftId || (currentShiftId && i.shiftId !== currentShiftId));
-      for (const inv of orphanInvoices) {
-        await supabase.from("invoices").update({ shift_id: currentShiftId }).eq("id", inv.id);
-      }
-
-      // 4. Abrir un único turno nuevo limpio
-      const { data: newShift } = await supabase
-        .from("shifts")
-        .insert({
-          opened_by: currentUser?.id,
-        })
-        .select()
-        .single();
-
-      if (newShift) {
-        setCurrentShiftId(newShift.id);
-        setShiftStartTime(newShift.opened_at);
-      }
-
-      setPaidInvoices([]);
-      setHistoryLoaded(false); // Invalida el caché para que al ver historial incluya el nuevo corte
-      fetchData(true);
-      return { success: true };
-    } catch (closeErr) {
-      console.error("Error al cerrar turno:", closeErr);
-      throw closeErr;
-    }
-  };
-
   const cancelTableOrder = async (tableId, reason = "Cancelación de mesa") => {
     if (!["super_cajero", "admin"].includes(currentRole) && !["super_cajero", "admin"].includes(currentUser?.role)) {
       showAlert({ 
@@ -1609,6 +1198,412 @@ export const BarProvider = ({ children }) => {
       setPendingSyncCount(getOfflineQueue().length);
     }
   };
+
+  // Alias directo de compatibilidad para eliminación/cancelación de mesas
+  const deleteTable = cancelTableOrder;
+
+  const sendOrderToCashier = async (tableId, customerName) => {
+    const sTableId = String(tableId);
+
+    const currentShield = pendingSyncTablesRef.current.get(sTableId);
+    if (currentShield) {
+      pendingSyncTablesRef.current.set(sTableId, {
+        ...currentShield,
+        status: "pendiente_pago",
+        customerName,
+        timestamp: Date.now(),
+      });
+    }
+
+    // OPTIMISTIC UI
+    setTables((prev) =>
+      prev.map((t) =>
+        String(t.id) === sTableId
+          ? { ...t, status: "pendiente_pago", customerName }
+          : t,
+      ),
+    );
+
+    await supabase
+      .from("tables")
+      .update({
+        status: "pendiente_pago",
+        customer_name: customerName,
+      })
+      .eq("id", sTableId);
+  };
+
+  const payInvoice = async (tableId, paymentMethod, transactionId = "") => {
+    if (currentRole === "mesero" || currentUser?.role === "mesero") {
+      showAlert({ title: "Permiso denegado", text: "El rol Mesero no tiene permiso para cobrar facturas.", icon: "error" });
+      return;
+    }
+    if (!currentShiftId) {
+      showError("Turno No Disponible", "No hay un turno de caja activo para procesar el cobro. Abre un turno de caja primero.");
+      return { success: false, message: "No hay turno activo." };
+    }
+    const sTableId = String(tableId);
+    const table = tables.find((t) => String(t.id) === sTableId);
+    if (!table || !table.items || table.items.length === 0) {
+      return { success: false, message: "La mesa no tiene ítems a cobrarse." };
+    }
+
+    const baseTotal = table.items.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0,
+    );
+    const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
+    const invoiceId = `FAC-${Date.now()}`;
+    const activeShiftId = currentShiftId;
+
+    const actualWaiterName = table.assignedWaiterName || (currentUser?.role === 'mesero' ? currentUser?.name : 'Sin mesero');
+    const actualCashierName = currentUser?.name || 'Cajero';
+
+    const invoicePayload = {
+      id: invoiceId,
+      shift_id: activeShiftId,
+      table_name: table.name,
+      customer_name: table.customerName || "Cliente",
+      waiter_name: actualWaiterName,
+      cashier_name: actualCashierName,
+      total,
+      payment_method: paymentMethod,
+      transaction_id: transactionId,
+      created_at: new Date().toISOString(),
+    };
+
+    const invoiceItemsPayload = table.items.map((i) => ({
+      invoice_id: invoiceId,
+      product_name: i.product.name,
+      quantity: i.quantity,
+      price_at_sale: i.product.price,
+      cost_at_sale: i.product.cost || 0,
+    }));
+
+    const newLocalInvoice = {
+      id: invoiceId,
+      shiftId: activeShiftId,
+      tableName: table.name,
+      customerName: table.customerName || "Cliente",
+      waiterName: actualWaiterName,
+      cashierName: actualCashierName,
+      total,
+      paymentMethod,
+      transactionId,
+      fullDate: invoicePayload.created_at,
+      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      items: table.items.map((i) => ({
+        name: i.product.name,
+        quantity: i.quantity,
+        price: Number(i.product.price),
+        cost: Number(i.product.cost || 0),
+        category: i.product.category,
+      })),
+    };
+
+    // Modo Sin Conexión
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.warn("📵 Sin conexión: Encolando cobro de factura en cola offline...");
+      enqueueOfflineAction('CREATE_INVOICE', {
+        invoice: invoicePayload,
+        invoiceItems: invoiceItemsPayload,
+        stockDeductions: [],
+        tableInfo: { id: sTableId, isBar: table.isBar }
+      });
+      setPendingSyncCount(getOfflineQueue().length);
+      purgeTableTimersAndWrites(sTableId);
+      pendingSyncTablesRef.current.set(sTableId, {
+        items: [],
+        unprintedItems: [],
+        customerName: "",
+        status: "libre",
+        isDeleted: true,
+        timestamp: Date.now(),
+      });
+      setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+      setPaidInvoices((prev) => prev.some((i) => i.id === newLocalInvoice.id) ? prev : [...prev, newLocalInvoice]);
+      return { success: true, offline: true, invoiceId };
+    }
+
+    // Modo Sincrónico Confirmado con Supabase
+    try {
+      // 1. Insertar Factura
+      const { error: invErr } = await supabase.from("invoices").insert(invoicePayload);
+      if (invErr) throw invErr;
+
+      // 2. Insertar Detalle de Factura
+      const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItemsPayload);
+      if (itemsErr) throw itemsErr;
+
+      // 3. Eliminar mesa y comandas de la BD
+      await supabase.from("tables").delete().eq("id", sTableId);
+      await supabase.from("orders").delete().eq("table_id", sTableId);
+
+      // 4. Confirmación exitosa en servidor: recién aquí actualizamos el estado local
+      purgeTableTimersAndWrites(sTableId);
+      pendingSyncTablesRef.current.set(sTableId, {
+        items: [],
+        unprintedItems: [],
+        customerName: "",
+        status: "libre",
+        isDeleted: true,
+        timestamp: Date.now(),
+      });
+      setTables((prev) => prev.filter((t) => String(t.id) !== sTableId));
+      setPaidInvoices((prev) => prev.some((i) => i.id === newLocalInvoice.id) ? prev : [...prev, newLocalInvoice]);
+
+      fetchData(true);
+      return { success: true, invoiceId };
+    } catch (err) {
+      console.error("Error al procesar cobro en Supabase:", err);
+      showError("Error al Procesar Cobro", err?.message || "Ocurrió un error al guardar la factura en la base de datos.");
+      return { success: false, error: err?.message };
+    }
+  };
+
+  const payDirectInvoice = async ({
+    items = [],
+    customerName = "Cliente Mostrador",
+    paymentMethod = "Efectivo",
+    transactionId = "",
+  }) => {
+    if (!currentShiftId) {
+      showError("Turno No Disponible", "No hay un turno de caja activo para procesar ventas directas. Abre un turno de caja primero.");
+      return null;
+    }
+    if (!items || items.length === 0) return null;
+
+    const baseTotal = items.reduce(
+      (sum, item) => sum + (Number(item.product?.price || item.price || 0) * (Number(item.quantity) || 1)),
+      0
+    );
+    const total = paymentMethod === 'Tarjeta' ? baseTotal * 1.10 : baseTotal;
+    const invoiceId = `FAC-${Date.now()}`;
+    const clientName = customerName && customerName.trim() ? customerName.trim() : "Cliente Mostrador";
+
+    // Sin control de inventario: las ventas directas tampoco descuentan stock.
+    const stockDeductions = [];
+
+    const actualCashierName = currentUser?.name || "Cajero";
+
+    const invoicePayload = {
+      id: invoiceId,
+      shift_id: currentShiftId,
+      table_name: "Venta al Día",
+      customer_name: clientName,
+      waiter_name: "Mostrador",
+      cashier_name: actualCashierName,
+      total,
+      payment_method: paymentMethod,
+      transaction_id: transactionId,
+      created_at: new Date().toISOString(),
+    };
+
+    const invoiceItemsPayload = items.map((i) => {
+      const p = i.product || i;
+      return {
+        invoice_id: invoiceId,
+        product_name: p.name,
+        quantity: Number(i.quantity) || 1,
+        price_at_sale: Number(p.price) || 0,
+        cost_at_sale: Number(p.cost || 0),
+      };
+    });
+
+    // Agregar factura a las facturas pagadas locales
+    const newLocalInvoice = {
+      id: invoiceId,
+      shiftId: currentShiftId,
+      tableName: "Venta al Día",
+      customerName: clientName,
+      waiterName: "Mostrador",
+      cashierName: actualCashierName,
+      total,
+      paymentMethod,
+      transactionId,
+      fullDate: invoicePayload.created_at,
+      date: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      items: items.map((i) => {
+        const p = i.product || i;
+        return {
+          name: p.name,
+          quantity: Number(i.quantity) || 1,
+          price: Number(p.price) || 0,
+          cost: Number(p.cost || 0),
+          category: p.category_id || p.category,
+        };
+      }),
+    };
+    setPaidInvoices((prev) => prev.some((i) => i.id === newLocalInvoice.id) ? prev : [...prev, newLocalInvoice]);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      enqueueOfflineAction('CREATE_INVOICE', {
+        invoice: invoicePayload,
+        invoiceItems: invoiceItemsPayload,
+        stockDeductions,
+        tableInfo: { id: `direct_${Date.now()}`, isBar: false }
+      });
+      setPendingSyncCount(getOfflineQueue().length);
+      return invoiceId;
+    }
+
+    try {
+      const { error: invErr } = await supabase.from("invoices").insert(invoicePayload);
+      if (invErr) throw invErr;
+
+      const { error: itemsErr } = await supabase.from("invoice_items").insert(invoiceItemsPayload);
+      if (itemsErr) throw itemsErr;
+
+      fetchData(true);
+      return invoiceId;
+    } catch (err) {
+      console.error("Error al registrar venta directa en Supabase:", err);
+      enqueueOfflineAction('CREATE_INVOICE', {
+        invoice: invoicePayload,
+        invoiceItems: invoiceItemsPayload,
+        stockDeductions,
+        tableInfo: { id: `direct_${Date.now()}`, isBar: false }
+      });
+      setPendingSyncCount(getOfflineQueue().length);
+      return invoiceId;
+    }
+  };
+
+  const openShift = async (initialCash = 0) => {
+    if (!currentUser?.id) {
+      showError("Usuario No Autenticado", "Debes iniciar sesión con una cuenta válida para poder abrir un turno de caja.");
+      return { success: false, message: "Usuario no autenticado." };
+    }
+
+    if (currentShiftId) {
+      showError("Turno Ya Activo", "Ya existe un turno de caja abierto en el sistema.");
+      return { success: false, message: "Ya existe un turno de caja activo." };
+    }
+
+    const amount = Number(initialCash);
+    if (isNaN(amount) || amount < 0) {
+      showError("Monto Inválido", "El fondo inicial de caja debe ser un número mayor o igual a 0.");
+      return { success: false, message: "Fondo inicial de caja inválido." };
+    }
+
+    try {
+      const { data: createdShift, error } = await supabase
+        .from("shifts")
+        .insert({
+          opened_by: currentUser.id,
+          opening_cash: amount,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (createdShift) {
+        setCurrentShiftId(createdShift.id);
+        setShiftStartTime(createdShift.opened_at);
+        setOpeningCash(Number(createdShift.opening_cash || amount));
+        setPaidInvoices([]);
+        setExpenses([]);
+        fetchData(true);
+        return { success: true, shift: createdShift };
+      }
+    } catch (err) {
+      console.error("Fallo al abrir turno de caja:", err);
+      showError("Error de Apertura", err?.message || "No se pudo crear el nuevo turno de caja.");
+      return { success: false, error: err };
+    }
+  };
+
+  const closeShift = async ({
+    cashCountDetails = null,
+    totalRealCounted = null,
+    notes = "",
+  } = {}) => {
+    if (!currentShiftId && paidInvoices.length === 0) return;
+    const shiftTotal = paidInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+    const rawCashSales = paidInvoices
+      .filter((inv) => inv.paymentMethod === "Efectivo")
+      .reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+
+    const shiftCashExpenses = expenses
+      .filter(
+        (e) =>
+          e &&
+          e.isPaid !== false &&
+          (e.paymentMethod === "Efectivo" || !e.paymentMethod) &&
+          e.shiftId &&
+          String(e.shiftId) === String(currentShiftId)
+      )
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+    const totalCashExpected = Number(openingCash || 0) + rawCashSales - shiftCashExpenses;
+
+    const actualCountedCash = totalRealCounted !== null && totalRealCounted !== undefined
+      ? Number(totalRealCounted)
+      : totalCashExpected;
+
+    const cashDifference = actualCountedCash - totalCashExpected;
+    const closeTimestamp = new Date().toISOString();
+
+    const updatePayload = {
+      closed_at: closeTimestamp,
+      closed_by: currentUser?.id,
+      total_expected: shiftTotal,
+      total_real: shiftTotal,
+      total_counted_cash: actualCountedCash,
+      cash_difference: cashDifference,
+    };
+
+    if (cashCountDetails) {
+      updatePayload.cash_breakdown = {
+        ...cashCountDetails,
+        notes: notes || "",
+        expectedCash: totalCashExpected,
+        difference: cashDifference,
+      };
+    }
+
+    try {
+      // 1. Cerrar el turno actual
+      if (currentShiftId) {
+        await supabase
+          .from("shifts")
+          .update(updatePayload)
+          .eq("id", currentShiftId);
+      }
+
+      // 2. Cerrar preventivamente cualquier otro turno huérfano que haya quedado sin cerrar
+      await supabase
+        .from("shifts")
+        .update({
+          closed_at: closeTimestamp,
+          closed_by: currentUser?.id,
+          total_real: 0,
+          total_expected: 0,
+        })
+        .is("closed_at", null);
+
+      // 3. Reasignar cualquier factura huérfana de este corte al ID del turno cerrado
+      const orphanInvoices = paidInvoices.filter((i) => !i.shiftId || (currentShiftId && i.shiftId !== currentShiftId));
+      for (const inv of orphanInvoices) {
+        await supabase.from("invoices").update({ shift_id: currentShiftId }).eq("id", inv.id);
+      }
+
+      // 4. Dejar el sistema en estado Caja Cerrada (sin auto-apertura silenciosa)
+      setCurrentShiftId(null);
+      setShiftStartTime(null);
+      setOpeningCash(0);
+      setPaidInvoices([]);
+      setHistoryLoaded(false); // Invalida el caché para que al ver historial incluya el nuevo corte
+      fetchData(true);
+      return { success: true };
+    } catch (closeErr) {
+      console.error("Error al cerrar turno:", closeErr);
+      throw closeErr;
+    }
+  };
+
+
 
   const uploadImage = async (file) => {
     if (!file) return null;
@@ -1746,27 +1741,59 @@ export const BarProvider = ({ children }) => {
     fetchData();
   };
 
-  const addExpense = async (newExpense, isCashierMode = false) => {
-    const isCashier = isCashierMode || currentRole === "cajero" || currentUser?.role === "cajero";
+  const addExpense = async (newExpense) => {
+    const isCashier = currentRole === "cajero" || currentUser?.role === "cajero";
     if (isCashier && !currentShiftId) {
       showError("Turno No Disponible", "Debes tener un turno de caja activo para poder registrar gastos de caja.");
       return;
     }
-    try {
-      const targetShiftId = isCashier ? currentShiftId : (newExpense.shiftId || null);
-      const { error } = await supabase.from("expenses").insert({
-        shift_id: targetShiftId,
-        description: newExpense.description,
-        category: newExpense.category,
-        amount: Number(newExpense.amount),
-        is_paid: newExpense.isPaid !== false,
-        notification_date: newExpense.notificationDate || null,
-      });
-      if (error) console.error("Error al registrar gasto:", error);
-    } catch (err) {
-      console.error("Fallo al registrar gasto:", err);
+
+    const targetShiftId = isCashier ? currentShiftId : (newExpense.shiftId || null);
+    const expenseId = `exp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const expensePayload = {
+      id: expenseId,
+      shift_id: targetShiftId,
+      description: newExpense.description,
+      category: newExpense.category || "otros",
+      amount: Number(newExpense.amount) || 0,
+      is_paid: newExpense.isPaid !== false,
+      notification_date: newExpense.notificationDate || null,
+      created_at: new Date().toISOString(),
+    };
+
+    // Actualización UI Optimista
+    const localExpenseObj = {
+      id: expenseId,
+      shiftId: targetShiftId,
+      amount: Number(newExpense.amount) || 0,
+      description: newExpense.description || "",
+      category: newExpense.category || "otros",
+      isPaid: newExpense.isPaid !== false,
+      paymentMethod: "Efectivo",
+      notificationDate: newExpense.notificationDate || null,
+      date: new Date().toISOString(),
+    };
+    setExpenses((prev) => [localExpenseObj, ...(prev || [])]);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      enqueueOfflineAction('CREATE_EXPENSE', { expense: expensePayload });
+      setPendingSyncCount(getOfflineQueue().length);
+      return;
     }
-    fetchData();
+
+    try {
+      const { error } = await supabase.from("expenses").insert(expensePayload);
+      if (error) {
+        console.error("Error al registrar gasto en Supabase, encolando offline:", error);
+        enqueueOfflineAction('CREATE_EXPENSE', { expense: expensePayload });
+        setPendingSyncCount(getOfflineQueue().length);
+      }
+    } catch (err) {
+      console.error("Fallo al registrar gasto, encolando offline:", err);
+      enqueueOfflineAction('CREATE_EXPENSE', { expense: expensePayload });
+      setPendingSyncCount(getOfflineQueue().length);
+    }
+    fetchData(true);
   };
 
   const updateExpense = async (updatedExpense) => {
@@ -1911,6 +1938,7 @@ export const BarProvider = ({ children }) => {
         paidInvoices,
         currentShiftId,
         shiftStartTime,
+        openingCash,
         cashRegisterHistory,
         isHistoryLoading,
         historyLoaded,
@@ -1932,6 +1960,7 @@ export const BarProvider = ({ children }) => {
         cancelTableOrder,
         clearUnprintedItems,
         addBarAccount,
+        openShift,
         closeShift,
         addProduct,
         updateProduct,

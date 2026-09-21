@@ -11,10 +11,22 @@ export const PendingBills = () => {
   // Filtrar mesas que están en estado "pendiente_pago" o con items listos para cobrar
   const pendingTables = tables.filter(t => t.status === 'pendiente_pago');
 
-  const handleConfirmPay = (tableId) => {
-    payInvoice(tableId, selectedPaymentMethod, transactionId);
-    setPayingTableId(null);
-    setTransactionId('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleConfirmPay = async (tableId) => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      const res = await payInvoice(tableId, selectedPaymentMethod, transactionId);
+      if (res && res.success !== false) {
+        setPayingTableId(null);
+        setTransactionId('');
+      }
+    } catch (err) {
+      console.error("Error al cobrar factura en PendingBills:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInitiatePay = (tableId) => {
