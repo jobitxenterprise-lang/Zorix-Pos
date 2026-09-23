@@ -50,9 +50,13 @@ CREATE TABLE IF NOT EXISTS public.shifts (
   closed_at timestamptz,
   opened_by uuid REFERENCES public.users(id),
   closed_by uuid REFERENCES public.users(id),
+  opening_cash numeric(12,2) DEFAULT 0.00,
   total_expected numeric(12,2),
   total_real numeric(12,2),
-  difference numeric(12,2)
+  total_counted_cash numeric(12,2),
+  difference numeric(12,2),
+  cash_difference numeric(12,2),
+  cash_breakdown jsonb
 );
 
 -- 6. Mesas y Cuentas Activas (tables)

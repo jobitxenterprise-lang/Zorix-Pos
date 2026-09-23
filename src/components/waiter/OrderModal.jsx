@@ -94,17 +94,25 @@ export const OrderModal = ({ table, onClose }) => {
   };
 
   // Reducir o eliminar cantidad de forma atómica
-  const handleQuantity = (productId, delta) => {
+  const handleQuantity = (productId, delta, itemObj = null) => {
+    const targetId = String(productId || itemObj?.product?.id || itemObj?.productId || itemObj?.id || '');
+    const targetName = String(itemObj?.product?.name || itemObj?.name || '').trim().toLowerCase();
+
     if (delta < 0 && isMesero) {
-      const sTargetId = String(productId);
-      const origItem = (table.items || []).find(
-        (i) => String(i.product?.id || i.productId || i.id) === sTargetId
-      );
-      const currentItem = localItems.find(
-        (i) => String(i.product?.id || i.productId || i.id) === sTargetId
-      );
+      const origItem = (table.items || []).find((i) => {
+        const oId = String(i.product?.id || i.productId || i.id || '');
+        const oName = String(i.product?.name || i.name || '').trim().toLowerCase();
+        return (targetId && oId && targetId === oId) || (targetName && oName && targetName === oName);
+      });
+
+      const currentItem = localItems.find((i) => {
+        const cId = String(i.product?.id || i.productId || i.id || '');
+        const cName = String(i.product?.name || i.name || '').trim().toLowerCase();
+        return (targetId && cId && targetId === cId) || (targetName && cName && targetName === cName);
+      });
+
       if (origItem && currentItem && currentItem.quantity <= origItem.quantity) {
-        setErrorMsg("Un mesero no puede anular productos ni reducir cantidades guardadas. Solicita autorización de Cajero.");
+        setErrorMsg("Un mesero no puede anular productos ni reducir cantidades guardadas. Solicita autorización de Cajero / Admin.");
         setTimeout(() => setErrorMsg(""), 4000);
         return;
       }
@@ -112,7 +120,9 @@ export const OrderModal = ({ table, onClose }) => {
 
     let nextItems = localItems
       .map((i) => {
-        if (String(i.product?.id) === String(productId)) {
+        const iId = String(i.product?.id || i.productId || i.id || '');
+        const iName = String(i.product?.name || i.name || '').trim().toLowerCase();
+        if ((targetId && iId && targetId === iId) || (targetName && iName && targetName === iName)) {
           return { ...i, quantity: i.quantity + delta };
         }
         return i;
@@ -121,7 +131,9 @@ export const OrderModal = ({ table, onClose }) => {
 
     let nextUnprinted = localUnprinted
       .map((i) => {
-        if (String(i.product?.id) === String(productId)) {
+        const uId = String(i.product?.id || i.productId || i.id || '');
+        const uName = String(i.product?.name || i.name || '').trim().toLowerCase();
+        if ((targetId && uId && targetId === uId) || (targetName && uName && targetName === uName)) {
           return { ...i, quantity: Math.max(0, i.quantity + delta) };
         }
         return i;
@@ -327,22 +339,25 @@ export const OrderModal = ({ table, onClose }) => {
             ) : (
               localItems.map((item) => {
                 const itemProdId = String(item.product?.id || item.productId || item.id || '');
-                const origItem = (table.items || []).find(
-                  (i) => String(i.product?.id || i.productId || i.id || '') === itemProdId
-                );
+                const itemName = String(item.product?.name || item.name || '').trim().toLowerCase();
+                const origItem = (table.items || []).find((i) => {
+                  const oId = String(i.product?.id || i.productId || i.id || '');
+                  const oName = String(i.product?.name || i.name || '').trim().toLowerCase();
+                  return (itemProdId && oId && itemProdId === oId) || (itemName && oName && itemName === oName);
+                });
                 const cannotReduce = isMesero && origItem && item.quantity <= origItem.quantity;
 
                 return (
                   <div
-                    key={item.product?.id || Math.random()}
+                    key={item.product?.id || item.id || Math.random()}
                     className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col gap-1.5 shadow-xs"
                   >
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-slate-900 text-sm m-0 leading-tight">
-                        {item.product?.name || 'Producto'}
+                        {item.product?.name || item.name || 'Producto'}
                       </p>
                       <p className="text-slate-900 text-sm font-bold m-0">
-                        C${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                        C${((item.product?.price || item.price || 0) * item.quantity).toFixed(2)}
                       </p>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
@@ -357,12 +372,12 @@ export const OrderModal = ({ table, onClose }) => {
                           <span>Copia</span>
                         </button>
                         <span className="text-[11px] text-slate-500 font-medium">
-                          C${(item.product?.price || 0).toFixed(2)} c/u
+                          C${(item.product?.price || item.price || 0).toFixed(2)} c/u
                         </span>
                       </div>
                       <div className="flex items-center bg-slate-100/80 rounded-lg border border-slate-300 p-0.5">
                         <button
-                          onClick={() => handleQuantity(item.product.id, -1)}
+                          onClick={() => handleQuantity(item.product?.id || item.productId || item.id, -1, item)}
                           disabled={cannotReduce}
                           title={cannotReduce ? "Se requiere rol Cajero para reducir cantidades guardadas" : "Disminuir"}
                           className={`w-7 h-7 flex items-center justify-center rounded-md text-slate-600 transition-colors ${
@@ -381,8 +396,9 @@ export const OrderModal = ({ table, onClose }) => {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => handleQuantity(item.product.id, 1)}
+                          onClick={() => handleQuantity(item.product?.id || item.productId || item.id, 1, item)}
                           className="w-7 h-7 flex items-center justify-center hover:bg-slate-200 rounded-md cursor-pointer text-slate-600 transition-colors active:bg-slate-300"
+                          title="Aumentar"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
