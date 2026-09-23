@@ -200,3 +200,68 @@ end;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.save_table_order(text, bigint, jsonb, jsonb) TO anon, authenticated;
+
+-- 12. Tabla de Auditoría de Anulaciones (order_cancellations)
+CREATE TABLE IF NOT EXISTS public.order_cancellations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  table_id text,
+  table_name text,
+  user_id uuid REFERENCES public.users(id),
+  user_name text,
+  cancellation_type text DEFAULT 'parcial',
+  reason text NOT NULL,
+  items jsonb DEFAULT '[]'::jsonb,
+  shift_id uuid REFERENCES public.shifts(id),
+  created_at timestamptz DEFAULT now()
+);
+
+-- FUNCIÓN RPC AUDITORÍA: get_order_cancellations
+CREATE OR REPLACE FUNCTION public.get_order_cancellations(
+  p_user_id uuid DEFAULT NULL,
+  p_start_date timestamptz DEFAULT NULL,
+  p_end_date timestamptz DEFAULT NULL,
+  p_shift_id uuid DEFAULT NULL,
+  p_cancellation_type text DEFAULT NULL,
+  p_limit integer DEFAULT 100,
+  p_offset integer DEFAULT 0
+)
+RETURNS TABLE (
+  id uuid,
+  table_id text,
+  table_name text,
+  user_id uuid,
+  user_name text,
+  cancellation_type text,
+  reason text,
+  items jsonb,
+  shift_id uuid,
+  created_at timestamptz
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    c.id,
+    c.table_id,
+    c.table_name,
+    c.user_id,
+    c.user_name,
+    c.cancellation_type,
+    c.reason,
+    c.items,
+    c.shift_id,
+    c.created_at
+  FROM public.order_cancellations c
+  WHERE (p_start_date IS NULL OR c.created_at >= p_start_date)
+    AND (p_end_date IS NULL OR c.created_at <= p_end_date)
+    AND (p_shift_id IS NULL OR c.shift_id = p_shift_id)
+    AND (p_cancellation_type IS NULL OR c.cancellation_type = p_cancellation_type)
+  ORDER BY c.created_at DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_order_cancellations(uuid, timestamptz, timestamptz, uuid, text, integer, integer) TO anon, authenticated;
+
