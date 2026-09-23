@@ -40,6 +40,8 @@ export const OrderModal = ({ table, onClose }) => {
   const [customerName, setCustomerName] = useState(table.customerName || "");
   const [showPreview, setShowPreview] = useState(false);
   const [showComanda, setShowComanda] = useState(false);
+  const [comandaItemsToPrint, setComandaItemsToPrint] = useState(null);
+  const [isComandaCopy, setIsComandaCopy] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [search, SetSearch] = useState("");
   const [mobileView, setMobileView] = useState("catalog"); // "catalog" | "order"
@@ -164,8 +166,22 @@ export const OrderModal = ({ table, onClose }) => {
 
   const handleCloseComanda = () => {
     setShowComanda(false);
+    setComandaItemsToPrint(null);
+    setIsComandaCopy(false);
     setLocalUnprinted([]);
     clearUnprintedItems(table.id);
+  };
+
+  const handlePrintSingleProductCopy = (item) => {
+    setComandaItemsToPrint([item]);
+    setIsComandaCopy(true);
+    setShowComanda(true);
+  };
+
+  const handleOpenFullComanda = () => {
+    setComandaItemsToPrint(null);
+    setIsComandaCopy(false);
+    setShowComanda(true);
   };
 
   const handleCheckoutFromModal = async () => {
@@ -330,9 +346,20 @@ export const OrderModal = ({ table, onClose }) => {
                       </p>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[11px] text-slate-500 font-medium">
-                        C${(item.product?.price || 0).toFixed(2)} c/u
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handlePrintSingleProductCopy(item)}
+                          title="Imprimir COPIA de comanda de este producto"
+                          className="px-2 py-1 bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 rounded border border-slate-200 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer active:scale-95"
+                        >
+                          <Printer className="w-3 h-3 text-slate-600" />
+                          <span>Copia</span>
+                        </button>
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          C${(item.product?.price || 0).toFixed(2)} c/u
+                        </span>
+                      </div>
                       <div className="flex items-center bg-slate-100/80 rounded-lg border border-slate-300 p-0.5">
                         <button
                           onClick={() => handleQuantity(item.product.id, -1)}
@@ -478,8 +505,9 @@ export const OrderModal = ({ table, onClose }) => {
       {showComanda && (
         <ComandaPreview
           table={table}
-          items={localUnprinted.length > 0 ? localUnprinted : localItems}
+          items={comandaItemsToPrint || (localUnprinted.length > 0 ? localUnprinted : localItems)}
           waiterName={table.assignedWaiterName || currentUser?.name}
+          isCopy={isComandaCopy}
           onClose={handleCloseComanda}
         />
       )}
