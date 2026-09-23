@@ -283,39 +283,6 @@ export const printShiftCloseReceipt = ({
       }
     </div>
 
-    <div style="border-top: 1px dashed #000; margin: 12px 0 8px;"></div>
-    <div style="font-size: 18px; font-weight: bold; margin-bottom: 6px; color: #000;">
-      AUDITORÍA DE INVENTARIO
-      <div style="font-size: 14px; font-weight: normal; color: #000;">(Vendido vs Stock Restante)</div>
-    </div>
-    <table style="width: 100%; font-size: 15px; border-collapse: collapse; text-align: left; color: #000;">
-      <thead>
-        <tr style="border-bottom: 1px solid #000;">
-          <th style="padding: 4px 0;">PRODUCTO</th>
-          <th style="padding: 4px 0; text-align: center; width: 45px;">VEND.</th>
-          <th style="padding: 4px 0; text-align: right; width: 75px;">TOTAL</th>
-          <th style="padding: 4px 0; text-align: right; width: 65px;">STOCK</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${
-          productsList.length === 0
-            ? `<tr><td colspan="4" style="text-align: center; padding: 6px;">Sin productos vendidos</td></tr>`
-            : productsList
-                .map(
-                  (p) => `
-          <tr style="border-bottom: 1px dotted #000;">
-            <td style="padding: 4px 0; font-weight: 500;">${p.name}</td>
-            <td style="padding: 4px 0; text-align: center; font-weight: bold;">${p.quantitySold}</td>
-            <td style="padding: 4px 0; text-align: right; font-weight: bold;">C$${p.totalAmount.toFixed(0)}</td>
-            <td style="padding: 4px 0; text-align: right; font-weight: bold;">${p.currentStock}</td>
-          </tr>`
-                )
-                .join("")
-        }
-      </tbody>
-    </table>
-
     <div style="border-top: 1px dashed #000; margin: 16px 0 12px;"></div>
     <div style="text-align: center; font-size: 16px; line-height: 1.5; color: #000;">
       <div style="font-weight: bold;">*** FIN DE CORTE Z ***</div>

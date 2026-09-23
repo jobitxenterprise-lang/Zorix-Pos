@@ -16,8 +16,11 @@ const normalizeStr = (str = '') =>
     .toLowerCase()
     .trim();
 
-export const isTableInZone = (table, zoneId) => {
+export const isTableInZone = (table, zoneId, currentUserId = null) => {
   if (!table) return false;
+  if (zoneId === 'my_tables') {
+    return Boolean(table.assignedWaiterId) && String(table.assignedWaiterId) === String(currentUserId);
+  }
   if (zoneId === 'all') return true;
 
   const targetZone = ZONES.find(z => z.id === zoneId) || { id: zoneId, label: zoneId.replace(/_/g, ' ') };
@@ -36,7 +39,14 @@ export const isTableInZone = (table, zoneId) => {
   );
 };
 
-export const ZoneWizardPills = ({ selectedZone, onSelectZone, tables = [] }) => {
+export const ZoneWizardPills = ({ 
+  selectedZone, 
+  onSelectZone, 
+  tables = [], 
+  showTitle = false,
+  myTablesCount = 0,
+  showMyTables = false
+}) => {
   const knownNorms = new Set(ZONES.map(z => normalizeStr(z.label)));
   const displayZones = [...ZONES];
 
@@ -54,34 +64,46 @@ export const ZoneWizardPills = ({ selectedZone, onSelectZone, tables = [] }) => 
   });
 
   return (
-    <div className="w-full my-2 bg-white">
-      {/* Título centrado sin fondo oscuro */}
-      <div className="flex items-center justify-center gap-2 mb-3">
-        <span className="text-xs font-black text-slate-700 tracking-wider uppercase">
-          Áreas del Local
+    <div className="flex items-center gap-2 overflow-x-auto py-0.5 touch-pan-x custom-scrollbar flex-wrap sm:flex-nowrap">
+      {showTitle && (
+        <span className="text-[11px] font-black text-slate-400 tracking-wider uppercase shrink-0 mr-1 hidden lg:inline">
+          Áreas:
         </span>
-      </div>
+      )}
+      {showMyTables && (
+        <button
+          onClick={() => onSelectZone('my_tables')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 shrink-0 flex items-center gap-1.5 border cursor-pointer active:scale-95 ${
+            selectedZone === 'my_tables'
+              ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm ring-2 ring-emerald-300'
+              : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-900 font-semibold'
+          }`}
+        >
+          <span>⭐ Mis Mesas</span>
+          <span className={`px-1.5 py-0.2 rounded-full text-[11px] font-extrabold ${
+            selectedZone === 'my_tables' ? 'bg-white text-emerald-800' : 'bg-emerald-200 text-emerald-900'
+          }`}>
+            {myTablesCount}
+          </span>
+        </button>
+      )}
+      {displayZones.map((zone) => {
+        const isActive = selectedZone === zone.id;
 
-      {/* Nav Pills Centradas en Fondo Blanco */}
-      <div className="flex items-center justify-center gap-2.5 overflow-x-auto pb-1 pt-0.5 touch-pan-x custom-scrollbar flex-wrap sm:flex-nowrap">
-        {displayZones.map((zone) => {
-          const isActive = selectedZone === zone.id;
-
-          return (
-            <button
-              key={zone.id}
-              onClick={() => onSelectZone(zone.id)}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 shrink-0 flex items-center gap-2 border cursor-pointer active:scale-95 ${
-                isActive
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700'
-              }`}
-            >
-              <span>{zone.label}</span>
-            </button>
-          );
-        })}
-      </div>
+        return (
+          <button
+            key={zone.id}
+            onClick={() => onSelectZone(zone.id)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 shrink-0 flex items-center gap-1.5 border cursor-pointer active:scale-95 ${
+              isActive
+                ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700'
+            }`}
+          >
+            <span>{zone.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };

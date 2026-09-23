@@ -9,7 +9,7 @@ export const WaiterHeader = () => {
 
   return (
     <header className="bg-white text-blue-950 shadow-sm border-b border-slate-200 sticky top-0 z-20">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <div className="w-full px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
         {/* Titulo del Sistema */}
         <div className="flex items-center gap-3">
           <div className="bg-slate-100 rounded-full overflow-hidden w-10 h-10 flex items-center justify-center border border-slate-200 shadow-sm">

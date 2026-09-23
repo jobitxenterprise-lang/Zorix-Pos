@@ -1,0 +1,1125 @@
+{
+  "categories": [
+    {
+      "id": "bebidas",
+      "name": "Bebidas",
+      "icon": "GlassWater"
+    },
+    {
+      "id": "cocteles",
+      "name": "Cocteles",
+      "icon": "Wine"
+    },
+    {
+      "id": "batidos",
+      "name": "Batidos",
+      "icon": "Drink"
+    },
+    {
+      "id": "licores",
+      "name": "Licores",
+      "icon": "GlassWater"
+    },
+    {
+      "id": "cervezas",
+      "name": "Cervezas",
+      "icon": "Beer"
+    },
+    {
+      "id": "entradas",
+      "name": "Entradas",
+      "icon": "Utensils"
+    },
+    {
+      "id": "pollo",
+      "name": "Pollo",
+      "icon": "Drumstick"
+    },
+    {
+      "id": "cerdo",
+      "name": "Cerdo",
+      "icon": "Utensils"
+    },
+    {
+      "id": "variados",
+      "name": "Variados",
+      "icon": "Utensils"
+    },
+    {
+      "id": "mariscos",
+      "name": "Mariscos",
+      "icon": "Fish"
+    },
+    {
+      "id": "res",
+      "name": "Res",
+      "icon": "Beef"
+    },
+    {
+      "id": "extras",
+      "name": "Extras",
+      "icon": "Plus"
+    },
+    {
+      "id": "comidas_rapidas",
+      "name": "Comidas Rápidas",
+      "icon": "UtensilsCrossed"
+    },
+    {
+      "id": "consomes",
+      "name": "Consomés",
+      "icon": "Soup"
+    },
+    {
+      "id": "sopas",
+      "name": "Sopas",
+      "icon": "Soup"
+    }
+  ],
+  "products": [
+    {
+      "name": "Refresco de piña colada",
+      "category_id": "bebidas",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pichel de té frío",
+      "category_id": "bebidas",
+      "price": 120.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Coca Cola, Fresca, Fanta",
+      "category_id": "bebidas",
+      "price": 40.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Jugo de naranja (La Granja)",
+      "category_id": "bebidas",
+      "price": 50.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Té de limón Lipton",
+      "category_id": "bebidas",
+      "price": 50.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Kiwi, fresa, piña, coco, uva, mora",
+      "category_id": "bebidas",
+      "price": 50.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Jugo del Valle (naranja, limón)",
+      "category_id": "bebidas",
+      "price": 40.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Hi-C manzana",
+      "category_id": "bebidas",
+      "price": 35.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Hi-C té",
+      "category_id": "bebidas",
+      "price": 40.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Kola Shaler",
+      "category_id": "bebidas",
+      "price": 40.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Choby (12 onz.)",
+      "category_id": "bebidas",
+      "price": 35.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ensa de vidrio (12 onz.)",
+      "category_id": "bebidas",
+      "price": 35.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ensa desechable",
+      "category_id": "bebidas",
+      "price": 40.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Jugo de lata",
+      "category_id": "bebidas",
+      "price": 40.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Gaseosa 3 Lt (Coca Cola, Fanta roja, naranja, fresca; incluye hielo y vasos)",
+      "category_id": "bebidas",
+      "price": 170.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Gaseosa de 2 Lt (Coca Cola o sabor)",
+      "category_id": "bebidas",
+      "price": 140.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Agua embotellada 2 Lt",
+      "category_id": "bebidas",
+      "price": 65.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Agua embotellada 1.5 Lt",
+      "category_id": "bebidas",
+      "price": 55.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Agua embotellada 1 Lt",
+      "category_id": "bebidas",
+      "price": 45.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Agua embotellada 1/2",
+      "category_id": "bebidas",
+      "price": 35.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Powerade azul o rojo",
+      "category_id": "bebidas",
+      "price": 50.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Gatorade (Naranja, limón, azul o rojo)",
+      "category_id": "bebidas",
+      "price": 50.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Coctel de camarón (12 unidades)",
+      "category_id": "cocteles",
+      "price": 250.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Coctel de conchas (12 unidades)",
+      "category_id": "cocteles",
+      "price": 180.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ceviche de pescado o camarón",
+      "category_id": "cocteles",
+      "price": 250.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ceviche de conchas vírgenes",
+      "category_id": "cocteles",
+      "price": 280.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ceviche mixto (Pescado y camarón)",
+      "category_id": "cocteles",
+      "price": 280.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ceviche triple (Pescado, concha y camarón)",
+      "category_id": "cocteles",
+      "price": 300.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Naranja, papaya, melón, sandía, banano",
+      "category_id": "batidos",
+      "price": 100.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Piña",
+      "category_id": "batidos",
+      "price": 100.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Frapé (Chocolate, caramelo)",
+      "category_id": "batidos",
+      "price": 120.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Café capuchino",
+      "category_id": "batidos",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Café con leche",
+      "category_id": "batidos",
+      "price": 50.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Café presto",
+      "category_id": "batidos",
+      "price": 30.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Limonada (Normal o con hierba buena)",
+      "category_id": "batidos",
+      "price": 80.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ron Gran Reserva (1 Lt)",
+      "category_id": "licores",
+      "price": 800.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ron Gran Reserva (1/2)",
+      "category_id": "licores",
+      "price": 400.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ron Extra Lite (1/2)",
+      "category_id": "licores",
+      "price": 300.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ron Extra Lite (1 Lt)",
+      "category_id": "licores",
+      "price": 560.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ultra Lite (1/2)",
+      "category_id": "licores",
+      "price": 280.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ultra Lite (1 Lt)",
+      "category_id": "licores",
+      "price": 560.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Coctel de piña colada",
+      "category_id": "licores",
+      "price": 130.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Coctel de strawberry fresa",
+      "category_id": "licores",
+      "price": 130.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Coctel margarita",
+      "category_id": "licores",
+      "price": 130.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Jimador reposado (750 ml)",
+      "category_id": "licores",
+      "price": 1400.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Jimador blanco (750 ml)",
+      "category_id": "licores",
+      "price": 1300.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Michelada con Toña",
+      "category_id": "licores",
+      "price": 130.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Michela con Heineken",
+      "category_id": "licores",
+      "price": 155.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Centenario 12 años (1/2)",
+      "category_id": "licores",
+      "price": 900.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Centenario 18 años (1/2)",
+      "category_id": "licores",
+      "price": 1100.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Cristalino",
+      "category_id": "licores",
+      "price": 650.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Toña lata 12 Onz.",
+      "category_id": "cervezas",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Toña 12 Onz. Lt.",
+      "category_id": "cervezas",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Toña Lite 12 Onz. vidrio",
+      "category_id": "cervezas",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Victoria Frost 12 Onz. vidrio",
+      "category_id": "cervezas",
+      "price": 55.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Victoria Clásica 12 Onz. vidrio",
+      "category_id": "cervezas",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Bamboo Daiquiri",
+      "category_id": "cervezas",
+      "price": 65.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Bamboo Mojito",
+      "category_id": "cervezas",
+      "price": 65.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Bamboo Sandía",
+      "category_id": "cervezas",
+      "price": 90.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Miller Lite",
+      "category_id": "cervezas",
+      "price": 65.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Smirnoff (Roja y manzana)",
+      "category_id": "cervezas",
+      "price": 100.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Heineken 12 Onz.",
+      "category_id": "cervezas",
+      "price": 85.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Cubetazo Frost",
+      "category_id": "cervezas",
+      "price": 275.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Bliss",
+      "category_id": "cervezas",
+      "price": 85.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Sol",
+      "category_id": "cervezas",
+      "price": 80.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Adán y Eva",
+      "category_id": "cervezas",
+      "price": 70.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Cubetazo Toña",
+      "category_id": "cervezas",
+      "price": 300.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Hard Seltzer",
+      "category_id": "cervezas",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Toña Ultra",
+      "category_id": "cervezas",
+      "price": 60.0,
+      "print_type": "bebida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ensalada de frutas en trozos (Melón, papaya, banano, sandía y piña)",
+      "category_id": "entradas",
+      "price": 100.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Desayuno Nica (Gallo pinto, queso, maduro, huevo, jugo, leche)",
+      "category_id": "entradas",
+      "price": 250.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Repollo picado (Ensalada, crema)",
+      "category_id": "entradas",
+      "price": 120.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Tostones con queso (Queso y crema)",
+      "category_id": "entradas",
+      "price": 150.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Tostones mixtos (Queso y salchicha)",
+      "category_id": "entradas",
+      "price": 200.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Tostones con carne",
+      "category_id": "entradas",
+      "price": 240.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Ensalada de legumbres mixta (Con fajitas de pollo)",
+      "category_id": "entradas",
+      "price": 280.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Combo de alitas con salsa picante (6 piezas)",
+      "category_id": "entradas",
+      "price": 360.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Combo de alitas con salsa picante (12 piezas)",
+      "category_id": "entradas",
+      "price": 720.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo a la plancha (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 330.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo en salsa de hongo (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo empanizado (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Filete de pollo en salsa chimichurri (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Alitas picantes (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 330.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Fajitas de pollo empanizadas (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 330.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo en salsa jalapeña (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo asado (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo en salsa blanca (Arroz, ensalada, papas fritas o tostone)",
+      "category_id": "pollo",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Lomo de cerdo (Parrilla, plancha)",
+      "category_id": "cerdo",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Costilla de cerdo (Parrilla, plancha)",
+      "category_id": "cerdo",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Variado criollo mediano (Caballo bayo surtido)",
+      "category_id": "variados",
+      "price": 500.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Variado criollo grande (Caballo bayo surtido)",
+      "category_id": "variados",
+      "price": 600.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Parrillada familiar (Incluye Coca Cola 2 Lts.)",
+      "category_id": "variados",
+      "price": 1600.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Mega parrillada familiar (Incluye Coca Cola 2 Lts.)",
+      "category_id": "variados",
+      "price": 1900.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pescado frito (Según tamaño)",
+      "category_id": "mariscos",
+      "price": 0.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Fajitas de pescado empanizadas",
+      "category_id": "mariscos",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Filete de pescado (Plancha, ajillo)",
+      "category_id": "mariscos",
+      "price": 350.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Camarones en salsa roja",
+      "category_id": "mariscos",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Camarones en salsa jalapeña",
+      "category_id": "mariscos",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Camarones al ajillo",
+      "category_id": "mariscos",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Camarones empanizados",
+      "category_id": "mariscos",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Churrasco de res (En salsa chimichurri)",
+      "category_id": "res",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Beef steak encebollado",
+      "category_id": "res",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Papas fritas",
+      "category_id": "extras",
+      "price": 90.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Arroz",
+      "category_id": "extras",
+      "price": 30.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Frijoles con tortillas fritas",
+      "category_id": "extras",
+      "price": 60.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Queso",
+      "category_id": "extras",
+      "price": 40.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Salsa",
+      "category_id": "extras",
+      "price": 30.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Extra de alas",
+      "category_id": "extras",
+      "price": 60.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Hamburguesa jumbo",
+      "category_id": "comidas_rapidas",
+      "price": 150.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Hot dog jumbo",
+      "category_id": "comidas_rapidas",
+      "price": 100.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Papas con alitas de pollo",
+      "category_id": "comidas_rapidas",
+      "price": 150.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Sopa Maruchan (Pollo, camarón)",
+      "category_id": "comidas_rapidas",
+      "price": 100.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Mariscos",
+      "category_id": "consomes",
+      "price": 220.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo",
+      "category_id": "consomes",
+      "price": 180.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Mariscos",
+      "category_id": "sopas",
+      "price": 400.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    },
+    {
+      "name": "Pollo",
+      "category_id": "sopas",
+      "price": 300.0,
+      "print_type": "comida",
+      "stock": null,
+      "icon_path": null,
+      "is_active": true
+    }
+  ]
+}

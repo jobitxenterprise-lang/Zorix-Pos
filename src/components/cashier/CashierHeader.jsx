@@ -10,7 +10,7 @@ export const CashierHeader = ({ onOpenAperturaModal }) => {
 
   return (
     <header className="bg-white text-blue-950 shadow-sm border-b border-slate-200 sticky top-0 z-20 font-sans">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="w-full px-4 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4">
         {/* Titulo del Sistema */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <div className="bg-blue-950 text-white p-1.5 sm:p-2 rounded-xl font-bold flex items-center justify-center shrink-0 shadow-sm">
@@ -23,18 +23,11 @@ export const CashierHeader = ({ onOpenAperturaModal }) => {
             <span className={`font-sans text-xs sm:text-sm font-bold px-2.5 py-0.5 rounded-full border ${
               currentShiftId
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
+                : 'bg-rose-50 text-red-600 border-rose-200'
             }`}>
-              {currentShiftId ? 'Turno Activo' : 'Caja Cerrada'}
+              {currentShiftId ? 'Abierta' : ' 🔒 Cerrada'}
             </span>
-            {!currentShiftId && onOpenAperturaModal && (
-              <button
-                onClick={onOpenAperturaModal}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold px-3 py-1 rounded-xl transition-all shadow-xs cursor-pointer"
-              >
-                Abrir Caja
-              </button>
-            )}
+           
           </div>
         </div>
 

@@ -30,6 +30,9 @@ export const BarProvider = ({ children }) => {
 
   const [currentRole, setCurrentRole] = useState(currentUser?.role || "mesero");
 
+  // Estados principales de la aplicación
+  const initialSnapshot = typeof getOfflineSnapshot === 'function' ? getOfflineSnapshot() : null;
+
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState(CATEGORIES);
   const [tables, setTables] = useState(INITIAL_TABLES);
@@ -38,9 +41,9 @@ export const BarProvider = ({ children }) => {
   const [cashRegisterHistory, setCashRegisterHistory] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [exchangeRate, setExchangeRate] = useState(36.62);
-  const [currentShiftId, setCurrentShiftId] = useState(null);
-  const [shiftStartTime, setShiftStartTime] = useState(null);
-  const [openingCash, setOpeningCash] = useState(0);
+  const [currentShiftId, setCurrentShiftId] = useState(() => initialSnapshot?.currentShiftId || null);
+  const [shiftStartTime, setShiftStartTime] = useState(() => initialSnapshot?.shiftStartTime || null);
+  const [openingCash, setOpeningCash] = useState(() => initialSnapshot?.openingCash || 0);
 
   // Estados para Carga de Historial Bajo Demanda (Admin / Reportes)
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -65,17 +68,50 @@ export const BarProvider = ({ children }) => {
     try {
       if (!silent) setIsLoading(true);
 
-      // Fetch Global Configs
-      const { data: settingsData } = await supabase.from("settings").select("*");
+      // Ejecutar consultas iniciales independientes EN PARALELO (Parallel Fetch)
+      const [
+        settingsRes,
+        categoriesRes,
+        usersRes,
+        productsRes,
+        bundlesRes,
+        tablesRes,
+        ordersRes,
+        shiftsRes,
+      ] = await Promise.all([
+        supabase.from("settings").select("*"),
+        supabase.from("categories").select("*"),
+        supabase.from("users").select("*"),
+        supabase.from("products").select("*"),
+        supabase.from("product_bundles").select("*"),
+        supabase.from("tables").select("*"),
+        supabase.from("orders").select("*"),
+        supabase.from("shifts").select("*").is("closed_at", null).order("opened_at", { ascending: false }).limit(1),
+      ]);
+
       if (mySeq !== fetchSeqRef.current) return;
+
+      const settingsData = settingsRes.data;
+      const categoriesData = categoriesRes.data;
+      const usersData = usersRes.data;
+      const productsData = productsRes.data;
+      const bundlesData = bundlesRes.data;
+      const tablesData = tablesRes.data;
+      const tablesError = tablesRes.error;
+      const ordersData = ordersRes.data;
+      const ordersError = ordersRes.error;
+      const activeShiftsData = shiftsRes.data;
+
+      if (tablesError) throw new Error("Fallo al obtener mesas: " + tablesError.message);
+      if (ordersError) throw new Error("Fallo al obtener órdenes: " + ordersError.message);
+
+      // 1. Configs Globales
       if (settingsData) {
         const rate = settingsData.find((s) => s.key === "exchange_rate");
         if (rate) setExchangeRate(rate.value);
       }
 
-      // Fetch Categories from Supabase
-      const { data: categoriesData } = await supabase.from("categories").select("*");
-      if (mySeq !== fetchSeqRef.current) return;
+      // 2. Categorías
       if (categoriesData && categoriesData.length > 0) {
         setCategories(
           categoriesData.map((c) => ({
@@ -86,9 +122,7 @@ export const BarProvider = ({ children }) => {
         );
       }
 
-      // Fetch Users
-      const { data: usersData } = await supabase.from("users").select("*");
-      if (mySeq !== fetchSeqRef.current) return;
+      // 3. Usuarios
       if (usersData) {
         setUsers(
           usersData.map((u) => ({
@@ -102,17 +136,11 @@ export const BarProvider = ({ children }) => {
         );
       }
 
-      // Fetch Products
-      const { data: productsData } = await supabase.from("products").select("*");
-      const { data: bundlesData } = await supabase
-        .from("product_bundles")
-        .select("*");
-      if (mySeq !== fetchSeqRef.current) return;
-
+      // 4. Productos
       let mappedProducts = [];
       let newTables = [];
       let currentShiftInvoices = [];
-      let calculatedHistory = [];
+
       if (productsData) {
         mappedProducts = productsData.map((p) => {
           const bundleItems = bundlesData
@@ -127,8 +155,8 @@ export const BarProvider = ({ children }) => {
             category: p.category_id,
             price: Number(p.price),
             cost: Number(p.cost),
-            // Zorix POS no controla existencias: todos los productos son vendibles.
             stock: null,
+            print_type: p.print_type || (p.category_id === 'comida' ? 'comida' : 'bebida'),
             image:
               p.icon_path && p.icon_path.startsWith("http")
                 ? p.icon_path
@@ -139,19 +167,10 @@ export const BarProvider = ({ children }) => {
         setProducts(mappedProducts);
       }
 
-      // Fetch Tables & Orders
-      const { data: tablesData, error: tablesError } = await supabase.from("tables").select("*");
-      const { data: ordersData, error: ordersError } = await supabase.from("orders").select("*");
-
-      if (mySeq !== fetchSeqRef.current) return;
-      if (tablesError) throw new Error("Fallo al obtener mesas: " + tablesError.message);
-      if (ordersError) throw new Error("Fallo al obtener órdenes: " + ordersError.message);
-
+      // 5. Mesas y Órdenes
       if (tablesData && productsData) {
-        // Función auxiliar que resuelve los items de una mesa protegiendo contra race conditions
         const resolveTableItems = (tableId, dbTable, tableOrders) => {
           const sId = String(tableId);
-          // El snapshot local es autoritativo hasta que su escritura atómica termina.
           const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
           const shieldDuration = isOffline ? 300000 : 2000;
 
@@ -159,7 +178,7 @@ export const BarProvider = ({ children }) => {
           const hasPendingActive =
             pending &&
             !pending.isDeleted &&
-            Date.now() - pending.timestamp < shieldDuration;
+            (inFlightWritesRef.current.has(sId) || Date.now() - pending.timestamp < shieldDuration);
 
           const dbItemsMap = new Map();
           const dbUnprintedMap = new Map();
@@ -178,7 +197,7 @@ export const BarProvider = ({ children }) => {
                   category: rawProd.category_id || rawProd.category,
                   price: Number(rawProd.price),
                   cost: Number(rawProd.cost || 0),
-                   stock: null,
+                  stock: null,
                   image:
                     rawProd.icon_path && rawProd.icon_path.startsWith("http")
                       ? rawProd.icon_path
@@ -224,19 +243,17 @@ export const BarProvider = ({ children }) => {
           return {
             status: pending.status || dbTable.status || "ocupada",
             customerName: pending.customerName !== undefined ? pending.customerName : dbTable.customer_name || "",
-            // No mezclar con la BD: una reducción a cero debe seguir siendo cero.
             items: pending.items || [],
             unprintedItems: pending.unprintedItems || [],
           };
         };
 
-        // Assemble active tables from database
         newTables = [];
         for (const dbTable of tablesData) {
           const sId = String(dbTable.id);
           const pending = pendingSyncTablesRef.current.get(sId);
           if (pending && pending.isDeleted) {
-            continue; // Ignorar mesas que fueron cobradas o canceladas localmente
+            continue;
           }
 
           const tableOrders =
@@ -246,7 +263,6 @@ export const BarProvider = ({ children }) => {
 
           const resolved = resolveTableItems(sId, dbTable, tableOrders);
 
-          // Si la mesa está en estado libre y no tiene items ni pending activo, no la mostramos como mesa activa
           if (resolved.status === "libre" && resolved.items.length === 0 && !pending) {
             continue;
           }
@@ -267,7 +283,6 @@ export const BarProvider = ({ children }) => {
           });
         }
 
-        // Incorporar mesas creadas en cola offline o pending
         for (const [pId, pData] of pendingSyncTablesRef.current.entries()) {
           if (!pData.isDeleted && !newTables.some((t) => String(t.id) === String(pId))) {
             newTables.push({
@@ -287,7 +302,6 @@ export const BarProvider = ({ children }) => {
           }
         }
 
-        // Ordenar mesas cronológicamente
         newTables.sort((a, b) => {
           if (a.isBar && !b.isBar) return 1;
           if (!a.isBar && b.isBar) return -1;
@@ -299,43 +313,49 @@ export const BarProvider = ({ children }) => {
         }
       }
 
-      // 1. Fetch Active Shift (1 sola fila para el turno actual)
-      const { data: activeShiftsData } = await supabase
-        .from("shifts")
-        .select("*")
-        .is("closed_at", null)
-        .order("opened_at", { ascending: false })
-        .limit(1);
-
-      if (mySeq !== fetchSeqRef.current) return;
-
+      // 6. ACTUALIZAR ESTADO DEL TURNO ACTIVO INMEDIATAMENTE
       let activeShift = activeShiftsData && activeShiftsData.length > 0 ? activeShiftsData[0] : null;
 
-      // 2. Fetch Invoices únicamente del turno activo
-      currentShiftInvoices = [];
       if (activeShift) {
         setCurrentShiftId(activeShift.id);
         setShiftStartTime(activeShift.opened_at);
         setOpeningCash(Number(activeShift.opening_cash || 0));
+      } else {
+        setCurrentShiftId(null);
+        setShiftStartTime(null);
+        setOpeningCash(0);
+        setPaidInvoices([]);
+      }
 
-        const { data: invData } = await supabase
-          .from("invoices")
+      // 7. Cargar Facturas y Gastos del turno activo en paralelo
+      let expensesQuery = supabase.from("expenses").select("*");
+      if (activeShift) {
+        expensesQuery = expensesQuery.or(`shift_id.eq.${activeShift.id},shift_id.is.null`);
+      } else {
+        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        expensesQuery = expensesQuery.gte("created_at", since24h);
+      }
+
+      let invoicesQuery = activeShift
+        ? supabase.from("invoices").select("*").eq("shift_id", activeShift.id)
+        : Promise.resolve({ data: [] });
+
+      const [{ data: invData }, { data: expensesData }] = await Promise.all([
+        invoicesQuery,
+        expensesQuery,
+      ]);
+
+      if (mySeq !== fetchSeqRef.current) return;
+
+      if (activeShift && invData && invData.length > 0) {
+        const invIds = invData.map((inv) => inv.id);
+        const { data: invItemsData } = await supabase
+          .from("invoice_items")
           .select("*")
-          .eq("shift_id", activeShift.id);
+          .in("invoice_id", invIds);
 
         if (mySeq !== fetchSeqRef.current) return;
-
-        let activeShiftItems = [];
-        if (invData && invData.length > 0) {
-          const invIds = invData.map((inv) => inv.id);
-          const { data: invItemsData } = await supabase
-            .from("invoice_items")
-            .select("*")
-            .in("invoice_id", invIds);
-
-          if (mySeq !== fetchSeqRef.current) return;
-          activeShiftItems = invItemsData || [];
-        }
+        const activeShiftItems = invItemsData || [];
 
         currentShiftInvoices = (invData || []).map((inv) => ({
           id: inv.id,
@@ -362,23 +382,7 @@ export const BarProvider = ({ children }) => {
         }));
 
         setPaidInvoices(currentShiftInvoices);
-      } else {
-        setCurrentShiftId(null);
-        setShiftStartTime(null);
-        setOpeningCash(0);
-        setPaidInvoices([]);
       }
-
-      // 3. Fetch Expenses (gastos del turno activo + gastos globales de admin sin turno)
-      let expensesQuery = supabase.from("expenses").select("*");
-      if (activeShift) {
-        expensesQuery = expensesQuery.or(`shift_id.eq.${activeShift.id},shift_id.is.null`);
-      } else {
-        const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        expensesQuery = expensesQuery.gte("created_at", since24h);
-      }
-      const { data: expensesData } = await expensesQuery;
-      if (mySeq !== fetchSeqRef.current) return;
 
       if (expensesData) {
         setExpenses(
@@ -396,8 +400,11 @@ export const BarProvider = ({ children }) => {
         );
       }
 
-      // Guardar snapshot para uso offline
+      // Guardar snapshot para uso offline (incluyendo turno activo)
       saveOfflineSnapshot({
+        currentShiftId: activeShift ? activeShift.id : null,
+        shiftStartTime: activeShift ? activeShift.opened_at : null,
+        openingCash: activeShift ? Number(activeShift.opening_cash || 0) : 0,
         products: mappedProducts,
         tables: newTables,
         categories: categoriesData || CATEGORIES,
@@ -419,10 +426,12 @@ export const BarProvider = ({ children }) => {
 
     } catch (err) {
       console.error("Error al cargar datos desde Supabase:", err);
-      // Cargar desde snapshot si estamos offline
       if (!navigator.onLine) {
         const snapshot = getOfflineSnapshot();
         if (snapshot) {
+          if (snapshot.currentShiftId !== undefined) setCurrentShiftId(snapshot.currentShiftId);
+          if (snapshot.shiftStartTime !== undefined) setShiftStartTime(snapshot.shiftStartTime);
+          if (snapshot.openingCash !== undefined) setOpeningCash(snapshot.openingCash);
           if (snapshot.products) setProducts(snapshot.products);
           if (snapshot.tables) setTables(snapshot.tables);
           if (snapshot.categories) setCategories(snapshot.categories);
@@ -487,7 +496,7 @@ export const BarProvider = ({ children }) => {
             return;
           }
 
-          if (pending && !pending.isDeleted && Date.now() - pending.timestamp < 3000) {
+          if (pending && !pending.isDeleted && (inFlightWritesRef.current.has(sId) || Date.now() - pending.timestamp < 3000)) {
             return;
           }
 
@@ -766,7 +775,7 @@ export const BarProvider = ({ children }) => {
             area: targetTable?.area || "Rancho principal",
             status: tableStatus || targetTable?.status || "ocupada",
             customer_name: customerName || "",
-            assigned_waiter_id: currentUser?.id || "",
+            assigned_waiter_id: targetTable?.assignedWaiterId || currentUser?.id || "",
             created_at: targetTable?.createdAt || new Date().toISOString(),
             is_bar_account: Boolean(isBar),
           },
@@ -823,7 +832,7 @@ export const BarProvider = ({ children }) => {
             createdAt: targetTable?.createdAt || new Date().toISOString(),
             expectedVersion: orderVersion,
             userId: currentUser?.id,
-            actionId: actionId || ("act_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)),
+            actionId: providedActionId || ("act_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9)),
             reason: providedReason || "Modificación de comanda",
           });
           setPendingSyncCount(getOfflineQueue().length);
@@ -858,6 +867,14 @@ export const BarProvider = ({ children }) => {
     unprintedItems = null,
     tableName = null,
   ) => {
+    if (!currentShiftId) {
+      showAlert({ 
+        title: "Caja Cerrada", 
+        text: "No hay un turno de caja abierto en este momento. Solicita al cajero realizar la apertura de caja para poder registrar o modificar pedidos.", 
+        icon: "warning" 
+      });
+      return;
+    }
     try {
       const sTableId = String(tableId);
       const targetTable = tables.find((t) => String(t.id) === sTableId);
@@ -917,8 +934,8 @@ export const BarProvider = ({ children }) => {
               name: effectiveName,
               status: tableStatus,
               customerName: customerName,
-              assignedWaiterId: currentUser?.id,
-              assignedWaiterName: currentUser?.name || t.assignedWaiterName,
+              assignedWaiterId: t.assignedWaiterId || currentUser?.id,
+              assignedWaiterName: t.assignedWaiterName || currentUser?.name,
               items: items,
               unprintedItems: unprintedItems || [],
               orderVersion,
@@ -979,6 +996,14 @@ export const BarProvider = ({ children }) => {
   };
 
   const addBarAccount = async (customerName) => {
+    if (!currentShiftId) {
+      showAlert({ 
+        title: "Caja Cerrada", 
+        text: "No hay un turno de caja abierto en este momento. Solicita al cajero realizar la apertura de caja para poder aperturar cuentas en barra.", 
+        icon: "warning" 
+      });
+      return null;
+    }
     if (currentRole === "cajero" || currentUser?.role === "cajero") {
       showAlert({ title: "Permiso denegado", text: "El rol Cajero no tiene permiso para abrir cuentas en barra.", icon: "error" });
       return null;
@@ -1044,6 +1069,14 @@ export const BarProvider = ({ children }) => {
 
   // Función para abrir una mesa con número de mesa, cliente y zona/área dinámicos
   const openTable = async ({ tableNumber, customerName, area = "Rancho principal" }) => {
+    if (!currentShiftId) {
+      showAlert({ 
+        title: "Caja Cerrada", 
+        text: "No hay un turno de caja abierto en este momento. Solicita al cajero realizar la apertura de caja para poder abrir mesas.", 
+        icon: "warning" 
+      });
+      return null;
+    }
     if (currentRole === "cajero" || currentUser?.role === "cajero") {
       showAlert({ title: "Permiso denegado", text: "El rol Cajero no tiene permiso para abrir nuevas mesas.", icon: "error" });
       return null;
@@ -1636,16 +1669,19 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
+    const payload = {
+      name: newProd.name,
+      category_id: newProd.category,
+      price: newProd.price,
+      cost: newProd.cost,
+      print_type: newProd.print_type || (newProd.category === 'comida' ? 'comida' : 'bebida'),
+      stock: null,
+      icon_path: imageUrl,
+    };
+
     const { data: insertedProduct, error } = await supabase
       .from("products")
-      .insert({
-        name: newProd.name,
-        category_id: newProd.category,
-        price: newProd.price,
-        cost: newProd.cost,
-        stock: null,
-        icon_path: imageUrl,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -1670,16 +1706,19 @@ export const BarProvider = ({ children }) => {
       imageUrl = await uploadImage(imageFile);
     }
 
+    const updatePayload = {
+      name: updatedProd.name,
+      category_id: updatedProd.category,
+      price: updatedProd.price,
+      cost: updatedProd.cost,
+      print_type: updatedProd.print_type || (updatedProd.category === 'comida' ? 'comida' : 'bebida'),
+      stock: null,
+      icon_path: imageUrl,
+    };
+
     const { error } = await supabase
       .from("products")
-      .update({
-        name: updatedProd.name,
-        category_id: updatedProd.category,
-        price: updatedProd.price,
-        cost: updatedProd.cost,
-        stock: null,
-        icon_path: imageUrl,
-      })
+      .update(updatePayload)
       .eq("id", updatedProd.id);
 
     if (error) {

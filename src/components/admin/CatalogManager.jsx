@@ -57,6 +57,7 @@ export const CatalogManager = () => {
             initialValues={{
               name: editingProduct ? editingProduct.name : '',
               category: editingProduct ? editingProduct.category : (activeCategories[0]?.id || 'cervezas'),
+              print_type: editingProduct ? (editingProduct.print_type || (editingProduct.category === 'comida' ? 'comida' : 'bebida')) : 'comida',
               price: editingProduct ? editingProduct.price : '',
               cost: editingProduct ? (editingProduct.cost || '') : '',
               stock: '',
@@ -176,6 +177,18 @@ export const CatalogManager = () => {
                     </Field>
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Tipo de Comanda (Impresión):</label>
+                    <Field
+                      as="select"
+                      name="print_type"
+                      className="w-full p-2 border border-slate-300 rounded text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    >
+                      <option value="comida">Comida (Ticket COMIDA)</option>
+                      <option value="bebida">Bebida (Ticket BEBIDA)</option>
+                    </Field>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">Costo (C$):</label>
@@ -289,6 +302,7 @@ export const CatalogManager = () => {
               <thead>
                 <tr className="bg-blue-950 text-white border-b border-slate-200 text-[10px] uppercase font-bold">
                   <th className="p-3 pl-4">Producto</th>
+                  <th className="p-3">Tipo Comanda</th>
                   <th className="p-3">Precio</th>
                   <th className="p-3">Disponibilidad</th>
                   <th className="p-3 text-right pr-4">Acciones</th>
@@ -302,6 +316,15 @@ export const CatalogManager = () => {
                     <td className="p-3 pl-4">
                       <div className="font-semibold text-slate-900">{product.name}</div>
                       <div className="font-mono text-slate-400 text-[10px]">ID: #{product.id}</div>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase ${
+                        (product.print_type || (product.category === 'comida' ? 'comida' : 'bebida')) === 'comida'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                          : 'bg-blue-100 text-blue-900 border border-blue-200'
+                      }`}>
+                        {(product.print_type || (product.category === 'comida' ? 'comida' : 'bebida'))}
+                      </span>
                     </td>
                     <td className="p-3 font-bold text-slate-900">C${product.price.toFixed(2)}</td>
                     <td className="p-3">

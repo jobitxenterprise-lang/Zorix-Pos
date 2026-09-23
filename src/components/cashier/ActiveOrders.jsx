@@ -53,27 +53,27 @@ export const ActiveOrders = () => {
 
   return (
     <div className="h-full flex flex-col font-sans">
-      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="mb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h2 className="text-xl sm:text-2xl font-black text-blue-950 m-0">Pedidos Activos en Vivo</h2>
-          <p className="text-slate-500 text-xs sm:text-sm font-medium mt-0.5">Supervisión, edición y cobro directo en tiempo real</p>
+          <h2 className="text-lg sm:text-xl font-black text-blue-950 m-0">Pedidos Activos en Vivo</h2>
+          <p className="text-slate-500 text-xs font-medium mt-0.5">Supervisión, edición y cobro directo en tiempo real</p>
         </div>
 
         {currentRole === 'admin' && (
-          <div className="flex items-center gap-2 sm:gap-3 ml-auto shrink-0">
+          <div className="flex items-center gap-2 ml-auto shrink-0">
             <button
               onClick={handleCreateBarAccount}
-              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
+              className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer text-xs"
             >
-              <MdLocalBar className="w-4 h-4 sm:w-5 sm:h-5" />
+              <MdLocalBar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Despachar Barra</span>
             </button>
 
             <button
               onClick={() => setIsOpenTableModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer text-xs sm:text-sm"
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-1.5 px-3 rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all shrink-0 cursor-pointer text-xs"
             >
-              <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Despachar Mesa</span>
             </button>
           </div>
@@ -82,35 +82,35 @@ export const ActiveOrders = () => {
 
       {/* Buscador de Mesas y Cuentas de Barra */}
       {activeTables.length > 0 && (
-        <div className="mb-4 flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="mb-2.5 flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Buscar por mesa, barra o mesero..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all"
+                className="w-full pl-8 pr-8 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 shadow-xs transition-all"
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="text-xs font-semibold text-slate-500 flex items-center gap-2">
+            <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-2">
               <span>Mostrando <strong>{filteredTables.length}</strong> de {activeTables.length} cuentas activas</span>
             </div>
           </div>
 
-          {/* Wizard Nav Pill de Zonas del Local (Centrado en Fondo Blanco) */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center">
+          {/* Wizard Nav Pill de Zonas del Local */}
+          <div className="bg-white py-1.5 px-3 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
             <ZoneWizardPills
               selectedZone={selectedZone}
               onSelectZone={setSelectedZone}
@@ -139,7 +139,7 @@ export const ActiveOrders = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 items-stretch pb-10">
+        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-9 gap-3 items-stretch pb-10">
           {filteredTables.map(table => (
             <OrderCard 
               key={table.id} 

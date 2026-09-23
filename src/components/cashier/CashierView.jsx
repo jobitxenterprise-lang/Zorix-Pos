@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Dashboard } from './Dashboard';
 import { ActiveOrders } from './ActiveOrders';
 import { VentaAlDia } from './VentaAlDia';
-import { LayoutDashboard, Receipt, ShoppingBag, ChevronLeft, ChevronRight, ShieldAlert, Wallet, Lock, PlusCircle } from 'lucide-react';
+import { LayoutDashboard, Receipt, ShoppingBag, ChevronLeft, ChevronRight, ShieldAlert, Wallet } from 'lucide-react';
 import { CashierHeader } from './CashierHeader';
 import { useBar } from '../../context/BarContext';
 import { CancellationsReportView } from '../common/CancellationsReportView';
 import { ExpensesManager } from '../admin/ExpensesManager';
 import { AperturaCajaModal } from './AperturaCajaModal';
+import { ClosedShiftBanner } from '../common/ClosedShiftBanner';
 
 export const CashierView = () => {
   const [activeTab, setActiveTab] = useState('active');
@@ -63,28 +64,28 @@ export const CashierView = () => {
         {/* Sidebar Desktop (hidden md:flex) */}
         <div 
           className={`hidden md:flex relative shrink-0 flex-col bg-white border-r border-slate-200 transition-all duration-300 ease-in-out ${
-            isCollapsed ? 'w-[76px]' : 'w-64'
+            isCollapsed ? 'w-16' : 'w-52'
           }`}
         >
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="absolute -right-3 top-8 w-6 h-6 bg-white border border-slate-200 shadow-sm rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 cursor-pointer z-10"
+            className="absolute -right-3 top-6 w-6 h-6 bg-white border border-slate-200 shadow-sm rounded-full flex items-center justify-center text-slate-400 hover:text-slate-800 cursor-pointer z-10"
           >
             {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
           </button>
 
-          <div className="p-4 flex flex-col h-full">
+          <div className="p-3 flex flex-col h-full">
             {/* Logo */}
-            <div className={`flex items-center mb-8 mt-2 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
+            <div className={`flex items-center mb-4 mt-1 ${isCollapsed ? 'justify-center' : 'justify-start px-2'}`}>
               {!isCollapsed && (
-                <span className="bg-gradient-to-r from-blue-900 bg-blue-600 bg-clip-text text-transparent ml-1 font-black text-lg italic tracking-tight">
+                <span className="bg-gradient-to-r from-blue-900 bg-blue-600 bg-clip-text text-transparent ml-1 font-black text-base italic tracking-tight">
                   Zorix Pos
                 </span>
               )}
             </div>
 
             {/* Menú de Navegación Desktop */}
-            <div className="flex flex-col gap-2 flex-1">
+            <div className="flex flex-col gap-1.5 flex-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -93,14 +94,14 @@ export const CashierView = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     title={isCollapsed ? tab.label : ''}
-                    className={`relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all w-full text-left cursor-pointer group ${
+                    className={`relative flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all w-full text-left cursor-pointer group ${
                       isActive
                         ? 'bg-blue-300 text-slate-900'
                         : 'bg-transparent text-slate-500 hover:bg-blue-300 hover:text-slate-800'
                     } ${isCollapsed ? 'justify-center px-0' : 'justify-start'}`}
                   >
                     <div className="relative">
-                      <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                      <Icon className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`} />
                       {tab.badge && isCollapsed && (
                         <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-extrabold text-white ring-2 ring-white">
                           {tab.badge}
@@ -126,29 +127,9 @@ export const CashierView = () => {
         </div>
 
         {/* Área de Contenido Principal */}
-        <div className="flex-1 w-full overflow-y-auto p-3 sm:p-6 bg-slate-50">
-          <div className="max-w-full lg:max-w-[1200px] mx-auto h-full pb-10">
-            {!currentShiftId && (
-              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-amber-500 text-white rounded-xl shrink-0">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-amber-900 m-0">Caja Actualmente Cerrada</h4>
-                    <p className="text-xs text-amber-700 m-0 mt-0.5 font-medium">
-                      Para poder cobrar facturas o registrar gastos de caja, debes abrir el turno de caja compartido primero.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsAperturaModalOpen(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition-all shadow-md shadow-emerald-600/20 cursor-pointer shrink-0"
-                >
-                  <PlusCircle className="w-4 h-4" /> Abrir Caja e Iniciar Turno
-                </button>
-              </div>
-            )}
+        <div className="flex-1 w-full overflow-y-auto p-3 sm:p-5 bg-slate-50">
+          <div className="w-full h-full pb-10">
+            <ClosedShiftBanner onOpenApertura={() => setIsAperturaModalOpen(true)} />
 
             {activeTab === 'active' && <ActiveOrders />}
             {activeTab === 'quick_sale' && <VentaAlDia />}

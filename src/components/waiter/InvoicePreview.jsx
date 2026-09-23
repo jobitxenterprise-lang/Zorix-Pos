@@ -28,7 +28,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
   });
   
   const isFinal = !!paymentDetails;
-  const invoiceNum = (isFinal ? "FAC-" : "PREV-") + Date.now().toString().slice(-6);
+  const invoiceNum = "FAC-" + Date.now().toString().slice(-6);
 
   const handlePrint = (e) => {
     if (e) {
@@ -39,7 +39,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
     const printWindow = window.open("", "_blank", "width=420,height=680");
     if (printWindow) {
       printWindow.document.write(
-        "<html><head><title>" + (isFinal ? "Factura" : "Pre-Recibo") + "</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Courier New,monospace;font-size:12px;color:#000;background:#fff;padding:16px;width:300px;}</style></head><body>" +
+        "<html><head><title>Factura</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Courier New,monospace;font-size:12px;color:#000;background:#fff;padding:16px;width:300px;}</style></head><body>" +
           printContent +
           "<script>window.onload=function(){window.print();window.close();}</script></body></html>",
       );
@@ -66,7 +66,7 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
           <div className="flex items-center gap-2">
             <Printer className="w-5 h-5 text-white" />
             <span className="text-white font-bold text-sm">
-              {isFinal ? "Factura del Cliente" : "Pre-Recibo del Cliente"}
+              Factura del Cliente
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -155,8 +155,8 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
                 <span style={{ fontWeight: "bold" }}>Cajero:</span>
                 <span>{currentUser?.role === 'cajero' || isFinal ? (currentUser?.name || "Cajero") : "En caja"}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontWeight: "bold" }}>{isFinal ? "Factura N°:" : "Ref.:"}</span>
+              <div style={{ display: "flex", justify: "space-between" }}>
+                <span style={{ fontWeight: "bold" }}>Factura N°:</span>
                 <span style={{ fontSize: "16px" }}>{invoiceNum}</span>
               </div>
             </div>
@@ -301,11 +301,10 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
             <div
               style={{ textAlign: "center", fontSize: "12px", color: "#777" }}
             >
-              <div>¡Gracias por su {isFinal ? "compra" : "visita"}!</div>
+              <div>¡Gracias por su visita!</div>
               <div style={{ marginTop: "3px" }}>
-                Este documento es {isFinal ? "una factura." : "un pre-recibo."}
+                PROPINA VOLUNTARIA .
               </div>
-              {!isFinal && <div>No tiene validez fiscal.</div>}
             </div>
           </div>
         </div>
@@ -316,13 +315,12 @@ export const InvoicePreview = ({ table, items, customerName, paymentDetails, onC
               onClick={handlePrint}
               className="w-full flex items-center justify-center gap-2 py-3 bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer shadow-sm"
             >
-              <Printer className="w-4 h-4" /> Imprimir Pre-Recibo
+              <Printer className="w-4 h-4" /> Imprimir Factura
             </button>
           ) : (
             <>
               <div className="flex items-center justify-center gap-2 py-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-bold">
-                <CheckCircle className="w-4 h-4" /> Pre-recibo enviado a
-                imprimir
+                <CheckCircle className="w-4 h-4" /> Factura enviada a imprimir
               </div>
               <button
                 type="button"

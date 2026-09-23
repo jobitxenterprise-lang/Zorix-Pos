@@ -49,65 +49,64 @@ export const OrderCard = ({ table, onEdit }) => {
   };
 
   return (
-    <div className={`bg-white border-2 rounded-2xl p-5  transition-all flex flex-col justify-between h-full relative ${
-      isPending ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 '
+    <div className={`bg-white border-2 rounded-2xl p-2.5 sm:p-3 transition-all flex flex-col justify-between relative ${
+      isPending ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 shadow-xs'
     }`}>
       
       {/* Banner de Cuenta Solicitada */}
       {isPending && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[10px] font-black px-3 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 z-10 animate-pulse">
+        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 z-10 animate-pulse whitespace-nowrap">
           <Clock className="w-3 h-3" />
-          <span>Cuenta Solicitada en Caja</span>
+          <span>Cuenta Solicitada</span>
         </div>
       )}
 
       {/* Cabecera: Nombre de Mesa y Área */}
-      <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
-        <div className="min-w-0">
-          <h3 className="text-xl font-black text-blue-950 tracking-tight truncate m-0">
+      <div className="pb-1.5 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-1.5">
+          <h3 className="text-sm font-extrabold text-blue-950 tracking-tight truncate m-0">
             {table.name}
           </h3>
-          <br/>
-          <div className="flex items-center gap-1 text-slate-500 font-bold text-xs mt-0.5 truncate">
-            <MapPin className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span className="truncate">{table.area || 'Zona Principal'}</span>
-          </div>
-           <br/>
-          <div className="text-right shrink-0 flex items-center">
-        
-          <span className="text-xs font-black text-blue-950 truncate max-w-[100px] block">
-            {table.assignedWaiterName || 'Sin mesero'}
-          </span>
-        </div>
-        </div>
-      </div>
-
-      {/* Pie de Tarjeta: Total y Botones de Acción */}
-      <div className="pt-3 border-t border-slate-100 space-y-3">
-        <div className="flex items-center gap-2">
-          {onEdit && (
-            <button
-              type="button"
-              onClick={onEdit}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold rounded-xl text-xs transition-all cursor-pointer border border-blue-200 active:scale-95"
-            >
-              <IoEye className="w-4 h-4" />
-              <span>Ver Detalles</span>
-            </button>
-          )}
-
           {canCancel && (
             <button
               type="button"
               onClick={handleCancelTable}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold rounded-xl text-xs transition-all cursor-pointer border border-red-200 active:scale-95"
+              className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors cursor-pointer shrink-0"
               title="Cancelar/Eliminar Mesa"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Eliminar</span>
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
+
+        <div className="flex items-center gap-1 text-slate-500 font-semibold text-[10px] mt-0.5 truncate">
+          <MapPin className="w-3 h-3 text-blue-600 shrink-0" />
+          <span className="truncate">{table.area || 'Zona Principal'}</span>
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] bg-slate-50 p-1 px-2 rounded-lg border border-slate-200 mt-1.5">
+          <span className="text-slate-500 font-semibold flex items-center gap-1 shrink-0">
+            <User className="w-3 h-3 text-blue-700 shrink-0" />
+            <span>Mesero:</span>
+          </span>
+          <span className="font-extrabold text-blue-950 truncate max-w-[90px]">
+            {table.assignedWaiterName || 'Sin mesero'}
+          </span>
+        </div>
+      </div>
+
+      {/* Pie de Tarjeta: Botones de Acción */}
+      <div className="pt-2">
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="w-full flex items-center justify-center gap-1 py-1.5 px-2.5 bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold rounded-lg text-xs transition-all cursor-pointer border border-blue-200 active:scale-95"
+          >
+            <IoEye className="w-3.5 h-3.5" />
+            <span>Ver Detalles</span>
+          </button>
+        )}
       </div>
     </div>
   );

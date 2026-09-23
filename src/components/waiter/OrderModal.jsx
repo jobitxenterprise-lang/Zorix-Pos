@@ -15,6 +15,7 @@ import {
   Receipt,
   Printer,
   XCircle,
+  FileText,
 } from "lucide-react";
 import { FaBookmark } from "react-icons/fa";
 
@@ -384,16 +385,26 @@ export const OrderModal = ({ table, onClose }) => {
 
             {/* Botones de Acción según Rol */}
             {isMesero ? (
-              /* Rol Mesero: Única y estrictamente Generar Comanda */
-              <div className="flex flex-col gap-2">
+              /* Rol Mesero: Generar Comanda e Imprimir Factura */
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   disabled={localItems.length === 0}
                   onClick={() => setShowComanda(true)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-blue-600/20 active:scale-[0.99] min-h-[46px]"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99] whitespace-nowrap min-h-[44px]"
                 >
-                  <Printer className="w-4.5 h-4.5 text-white shrink-0" />
+                  <Printer className="w-4 h-4 text-white shrink-0" />
                   <span>Generar Comanda</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={localItems.length === 0}
+                  onClick={() => setShowPreview(true)}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs sm:text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99] whitespace-nowrap min-h-[44px]"
+                >
+                  <FileText className="w-4 h-4 text-white shrink-0" />
+                  <span>Imprimir Factura</span>
                 </button>
               </div>
             ) : (

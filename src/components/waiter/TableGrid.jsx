@@ -10,15 +10,22 @@ import { PlusCircle, UtensilsCrossed } from "lucide-react";
 import { MdLocalBar, MdTableRestaurant } from "react-icons/md";
 import { WaiterHeader } from './WaiterHeader';
 import { ZoneWizardPills, isTableInZone } from '../common/ZoneWizardPills';
+import { ClosedShiftBanner } from '../common/ClosedShiftBanner';
 
 export const TableGrid = () => {
-  const { tables, addBarAccount, currentRole } = useBar();
+  const { tables, addBarAccount, currentRole, currentUser } = useBar();
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [isOpenTableModalOpen, setIsOpenTableModalOpen] = useState(false);
-  const [selectedZone, setSelectedZone] = useState('all');
+  
+  const isMesero = currentRole === 'mesero' || currentUser?.role === 'mesero';
+  const [selectedZone, setSelectedZone] = useState(() => isMesero ? 'my_tables' : 'all');
 
   const selectedTable = tables.find(t => String(t.id) === String(selectedTableId));
-  const filteredTables = tables.filter(t => isTableInZone(t, selectedZone));
+  const myTablesCount = tables.filter(
+    t => t.status !== 'libre' && Boolean(t.assignedWaiterId) && String(t.assignedWaiterId) === String(currentUser?.id)
+  ).length;
+
+  const filteredTables = tables.filter(t => isTableInZone(t, selectedZone, currentUser?.id));
   
   // Contadores rápidos para la barra de estado
   const occupiedTables = tables.filter(t => t.status === 'ocupada' && !t.isBar).length;
@@ -28,14 +35,21 @@ export const TableGrid = () => {
   return (
     <>
       <WaiterHeader />
-      <div className="max-w-7xl mx-auto px-4 py-6 font-sans">
-        {/* Encabezado e Instrucciones en Fondo Blanco */}
-        <div className="mb-4 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 shadow-xs">
-        
+      <div className="w-full px-3 sm:px-6 pt-2.5 pb-6 font-sans">
+        <ClosedShiftBanner />
 
+        {/* Encabezado e Instrucciones en Fondo Blanco */}
+        <div className="mb-2.5 py-2 px-3 sm:px-4 rounded-2xl flex flex-wrap md:flex-nowrap items-center justify-between gap-2.5 bg-white border border-slate-200 shadow-xs">
+          <ZoneWizardPills
+            selectedZone={selectedZone}
+            onSelectZone={setSelectedZone}
+            tables={tables}
+            myTablesCount={myTablesCount}
+            showMyTables={isMesero}
+          />
           {/* Botones de Acción Alineados Estrictamente a la Derecha */}
           {currentRole !== 'cajero' && (
-            <div className="flex items-center gap-2.5 ml-auto shrink-0">
+            <div className="flex items-center gap-2 ml-auto shrink-0">
               <button
                 onClick={async () => {
                   const customerName = await showInputPrompt({ title: "Nueva Cuenta en Barra", text: "Ingresa el nombre del cliente:", required: true });
@@ -46,32 +60,24 @@ export const TableGrid = () => {
                     }
                   }
                 }}
-                className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer text-xs sm:text-sm"
+                className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-1.5 px-3.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer text-xs"
               >
-                <span className="text-base leading-none font-black">+</span>
+                <span className="text-sm leading-none font-black">+</span>
                 <span>Barra</span>
               </button>
               
               <button
                 onClick={() => setIsOpenTableModalOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer text-xs sm:text-sm"
+                className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-1.5 px-3.5 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer text-xs"
               >
-                <PlusCircle className="w-4 h-4" />
+                <PlusCircle className="w-3.5 h-3.5" />
                 <span>Abrir Mesa</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* Wizard Nav Pill de Zonas del Local (Centrado en Fondo Blanco) */}
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl mb-6 shadow-xs flex flex-col items-center justify-center">
-          <ZoneWizardPills
-            selectedZone={selectedZone}
-            onSelectZone={setSelectedZone}
-            tables={tables}
-          />
-        </div>
-
+      
         {/* Grilla de Mesas Activas o Estado Vacío */}
         {tables.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[300px] shadow-xs">
@@ -95,7 +101,7 @@ export const TableGrid = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-9 gap-3">
             {filteredTables.map(table => (
               <TableCard
                 key={table.id}
