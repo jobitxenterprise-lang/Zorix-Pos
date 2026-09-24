@@ -161,11 +161,14 @@ $$;
 GRANT EXECUTE ON FUNCTION public.save_table_order_audited(text, bigint, jsonb, jsonb, uuid, text, text) TO anon, authenticated;
 
 -- 3. FUNCIÓN RPC AUDITADA: cancel_table_order_audited
+DROP FUNCTION IF EXISTS public.cancel_table_order_audited(text, uuid, text, text);
+
 CREATE OR REPLACE FUNCTION public.cancel_table_order_audited(
   p_table_id text,
   p_user_id uuid DEFAULT NULL,
   p_action_id text DEFAULT NULL,
-  p_reason text DEFAULT 'Cancelación de mesa'
+  p_reason text DEFAULT 'Cancelación de mesa',
+  p_items jsonb DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -188,16 +191,20 @@ begin
   order by opened_at desc
   limit 1;
 
-  select jsonb_agg(
-    jsonb_build_object(
-      'product_id', o.product_id,
-      'product_name', coalesce(p.name, 'Producto'),
-      'quantity', o.quantity
-    )
-  ) into v_items
-  from public.orders o
-  left join public.products p on p.id = o.product_id
-  where o.table_id = p_table_id;
+  if p_items is not null and jsonb_array_length(p_items) > 0 then
+    v_items := p_items;
+  else
+    select jsonb_agg(
+      jsonb_build_object(
+        'product_id', o.product_id,
+        'product_name', coalesce(p.name, 'Producto'),
+        'quantity', o.quantity
+      )
+    ) into v_items
+    from public.orders o
+    left join public.products p on p.id = o.product_id
+    where o.table_id = p_table_id;
+  end if;
 
   if v_items is not null and jsonb_array_length(v_items) > 0 then
     insert into public.order_cancellations (
@@ -221,9 +228,75 @@ begin
 end;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.cancel_table_order_audited(text, uuid, text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_table_order_audited(text, uuid, text, text, jsonb) TO anon, authenticated;
 
--- 4. FUNCIÓN RPC REPORTE FINANCIERO: get_financial_report
+-- 4. FUNCIÓN RPC AUDITORÍA DESGLOSADA: get_order_cancellations
+DROP FUNCTION IF EXISTS public.get_order_cancellations(uuid, timestamptz, timestamptz, uuid, text, integer, integer);
+
+CREATE OR REPLACE FUNCTION public.get_order_cancellations(
+  p_user_id uuid DEFAULT NULL,
+  p_start_date timestamptz DEFAULT NULL,
+  p_end_date timestamptz DEFAULT NULL,
+  p_shift_id uuid DEFAULT NULL,
+  p_cancellation_type text DEFAULT NULL,
+  p_limit integer DEFAULT 100,
+  p_offset integer DEFAULT 0
+)
+RETURNS TABLE (
+  id uuid,
+  table_id text,
+  table_name text,
+  area text,
+  product_name text,
+  quantity numeric,
+  cancellation_type text,
+  cancelled_by_name text,
+  waiter_name text,
+  reason text,
+  shift_id uuid,
+  created_at timestamptz
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    c.id,
+    c.table_id,
+    c.table_name,
+    COALESCE(t.area, 'Rancho principal') AS area,
+    COALESCE(item->>'product_name', '-') AS product_name,
+    COALESCE((item->>'quantity')::numeric, 0) AS quantity,
+    c.cancellation_type,
+    COALESCE(c.user_name, u.name, 'Sistema') AS cancelled_by_name,
+    COALESCE(w.name, 'Sin mesero') AS waiter_name,
+    c.reason,
+    c.shift_id,
+    c.created_at
+  FROM public.order_cancellations c
+  LEFT JOIN public.tables t ON t.id = c.table_id
+  LEFT JOIN public.users u ON u.id = c.user_id
+  LEFT JOIN public.users w ON w.id = t.assigned_waiter_id
+  LEFT JOIN LATERAL jsonb_array_elements(
+    CASE 
+      WHEN c.items IS NULL OR jsonb_array_length(c.items) = 0 
+      THEN '[{"product_name": "-", "quantity": 0}]'::jsonb 
+      ELSE c.items 
+    END
+  ) AS item ON true
+  WHERE (p_start_date IS NULL OR c.created_at >= p_start_date)
+    AND (p_end_date IS NULL OR c.created_at <= p_end_date)
+    AND (p_shift_id IS NULL OR c.shift_id = p_shift_id)
+    AND (p_cancellation_type IS NULL OR c.cancellation_type = p_cancellation_type)
+  ORDER BY c.created_at DESC
+  LIMIT p_limit
+  OFFSET p_offset;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_order_cancellations(uuid, timestamptz, timestamptz, uuid, text, integer, integer) TO anon, authenticated;
+
+-- 5. FUNCIÓN RPC REPORTE FINANCIERO: get_financial_report
 CREATE OR REPLACE FUNCTION public.get_financial_report(
   p_start_date timestamptz,
   p_end_date timestamptz
@@ -241,26 +314,22 @@ declare
   v_invoices jsonb;
   v_products jsonb;
 begin
-  -- Total Ventas desde facturas en el rango de fechas
   select coalesce(sum(total), 0.00)
   into v_total_sales
   from public.invoices
   where created_at >= p_start_date and created_at <= p_end_date;
 
-  -- Total Costos de los productos vendidod
   select coalesce(sum(ii.quantity * coalesce(ii.cost_at_sale, 0.00)), 0.00)
   into v_total_cost
   from public.invoice_items ii
   join public.invoices i on i.id = ii.invoice_id
   where i.created_at >= p_start_date and i.created_at <= p_end_date;
 
-  -- Total Gastos operativos del período
   select coalesce(sum(amount), 0.00)
   into v_total_expenses
   from public.expenses
   where created_at >= p_start_date and created_at <= p_end_date;
 
-  -- Cálculos de margen y ganancias
   v_gross_profit := v_total_sales - v_total_cost;
   v_net_profit := v_gross_profit - v_total_expenses;
   
@@ -270,7 +339,6 @@ begin
     v_net_margin := 0.00;
   end if;
 
-  -- Lista de facturas en el período
   select coalesce(jsonb_agg(
     jsonb_build_object(
       'id', i.id,
@@ -287,7 +355,6 @@ begin
   from public.invoices i
   where i.created_at >= p_start_date and i.created_at <= p_end_date;
 
-  -- Agrupación de productos vendidos
   select coalesce(jsonb_agg(
     jsonb_build_object(
       'product_name', p.product_name,

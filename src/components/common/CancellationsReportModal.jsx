@@ -15,14 +15,26 @@ export const CancellationsReportModal = ({ isOpen, onClose }) => {
   const [page, setPage] = useState(0);
   const limit = 20;
 
+  const parseStartDate = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(`${dateStr}T00:00:00`);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  };
+
+  const parseEndDate = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(`${dateStr}T23:59:59.999`);
+    return isNaN(d.getTime()) ? null : d.toISOString();
+  };
+
   const fetchAuditLogs = async () => {
     if (!isOpen || !currentUser) return;
     setIsLoading(true);
     setErrorMsg('');
 
     const res = await loadOrderCancellations({
-      startDate: startDate ? new Date(startDate).toISOString() : null,
-      endDate: endDate ? new Date(endDate).toISOString() : null,
+      startDate: parseStartDate(startDate),
+      endDate: parseEndDate(endDate),
       cancellationType: cancellationType || null,
       limit,
       offset: page * limit,
@@ -40,10 +52,10 @@ export const CancellationsReportModal = ({ isOpen, onClose }) => {
     if (isOpen) {
       fetchAuditLogs();
     }
-  }, [isOpen, page, cancellationType]);
+  }, [isOpen, page, cancellationType, startDate, endDate]);
 
   const handleApplyFilter = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setPage(0);
     fetchAuditLogs();
   };
@@ -59,22 +71,19 @@ export const CancellationsReportModal = ({ isOpen, onClose }) => {
 
   const getTypeBadge = (type) => {
     switch (type) {
+      case 'parcial':
+      case 'ELIMINACION_PRODUCTO':
       case 'REDUCCION_CANTIDAD':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-             Reducción
+            Eliminación de producto
           </span>
         );
-      case 'ELIMINACION_PRODUCTO':
-        return (
-          <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
-             Eliminación
-          </span>
-        );
+      case 'total':
       case 'CANCELACION_MESA':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-800 border border-red-200">
-             Canc. Mesa
+            Cancelación de mesa
           </span>
         );
       default:
@@ -148,9 +157,8 @@ export const CancellationsReportModal = ({ isOpen, onClose }) => {
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-800 font-medium focus:outline-none focus:border-blue-950 cursor-pointer"
               >
                 <option value="">Todas las anulaciones</option>
-                <option value="REDUCCION_CANTIDAD">Reducción de cantidad</option>
-                <option value="ELIMINACION_PRODUCTO">Eliminación de producto</option>
-                <option value="CANCELACION_MESA">Cancelación de mesa completa</option>
+                <option value="parcial">Eliminación de producto</option>
+                <option value="total">Cancelación de mesa completa</option>
               </select>
             </div>
 

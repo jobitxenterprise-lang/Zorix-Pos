@@ -1940,12 +1940,19 @@ export const BarProvider = ({ children }) => {
   const loadOrderCancellations = async (filters = {}) => {
     if (!currentUser?.id) return { success: false, data: [] };
     try {
+      let rawType = filters.cancellationType || null;
+      if (['ELIMINACION_PRODUCTO', 'REDUCCION_CANTIDAD'].includes(rawType)) {
+        rawType = 'parcial';
+      } else if (rawType === 'CANCELACION_MESA') {
+        rawType = 'total';
+      }
+
       const { data, error } = await supabase.rpc("get_order_cancellations", {
         p_user_id: currentUser.id,
         p_start_date: filters.startDate || null,
         p_end_date: filters.endDate || null,
         p_shift_id: filters.shiftId || null,
-        p_cancellation_type: filters.cancellationType || null,
+        p_cancellation_type: rawType,
         p_limit: filters.limit || 100,
         p_offset: filters.offset || 0,
       });
