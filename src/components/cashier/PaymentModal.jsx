@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useBar } from '../../context/BarContext';
 import { showAlert } from '../../utils/swal';
+import { sendToLocalPrinter } from '../../utils/printerService';
 import { X, DollarSign, CreditCard, Banknote, ArrowRight, Receipt, Loader2 } from 'lucide-react';
 import { InvoicePreview } from '../waiter/InvoicePreview';
 
 export const PaymentModal = ({ table, onClose }) => {
-  const { payInvoice, exchangeRate } = useBar();
+  const { payInvoice, exchangeRate, currentUser } = useBar();
   const [paymentMethod, setPaymentMethod] = useState('Efectivo');
   const [currency, setCurrency] = useState('NIO');
   const [receivedAmount, setReceivedAmount] = useState('');
@@ -60,6 +61,26 @@ export const PaymentModal = ({ table, onClose }) => {
            change: changeAmount,
            reference: referenceNumber
         };
+
+        // Enviar Factura Oficial a la Impresora 3 (Epson TM-U220 Receipt / Caja Blanco y Amarillo)
+        try {
+          const invoicePayload = {
+            job_id: `inv_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+            job_type: 'INVOICE',
+            table: { id: table.id, name: table.name },
+            waiter: { name: table.assignedWaiterName || 'Mesero' },
+            cashier: { name: currentUser?.name || 'Cajero' },
+            items: (table.items || []).map((item) => ({
+              name: item.product?.name || item.name || 'Producto',
+              quantity: item.quantity || 1,
+              price: Number(item.product?.price || item.price || 0),
+              print_id: 3, // Impresora 3 Epson (Caja Blanco y Amarillo)
+            })),
+          };
+          sendToLocalPrinter(invoicePayload);
+        } catch (printErr) {
+          console.warn('⚠️ [PaymentModal] Error enviando factura a impresora local:', printErr);
+        }
 
         setSnapshotData({
           table: { ...table },

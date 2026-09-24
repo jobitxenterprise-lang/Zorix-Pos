@@ -9,6 +9,7 @@ import {
   getOfflineSnapshot 
 } from "../utils/offlineQueue";
 import { showAlert, showError, showInputPrompt, showConfirm } from "../utils/swal";
+import { sendToLocalPrinter } from "../utils/printerService";
 
 const BarContext = createContext();
 const SESSION_KEY = "bar_active_session_v1";
@@ -156,7 +157,7 @@ export const BarProvider = ({ children }) => {
             price: Number(p.price),
             cost: Number(p.cost),
             stock: null,
-            print_type: p.print_type || (p.category_id === 'comida' ? 'comida' : 'bebida'),
+            print_type: p.print_type || (p.category_id === 'comida' ? '3' : '2'),
             image:
               p.icon_path && p.icon_path.startsWith("http")
                 ? p.icon_path
@@ -958,6 +959,38 @@ export const BarProvider = ({ children }) => {
       }, 200);
 
       updateOrderDebounceTimersRef.current.set(sTableId, timerId);
+
+      // 5. Enviar comanda a impresoras térmicas locales si hay ítems nuevos por imprimir
+      const itemsToPrint = unprintedItems ? unprintedItems.filter((i) => i.quantity > 0) : [];
+      if (itemsToPrint.length > 0) {
+        const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        const printPayload = {
+          job_id: jobId,
+          job_type: 'ORDER',
+          table: { id: sTableId, name: effectiveName },
+          waiter: { name: currentUser?.name || 'Mesero' },
+          items: itemsToPrint.map((item) => {
+            const prod = item.product || item;
+            let printId = 1;
+            if (prod.print_type) {
+              printId = Number(prod.print_type);
+            } else if (prod.print_id) {
+              printId = Number(prod.print_id);
+            } else if (prod.category === 'comida' || prod.category_id === 'comida') {
+              printId = 3; // Epson TM-U220 (Comida / Caja)
+            } else if (prod.category === 'bebida' || prod.category_id === 'bebida') {
+              printId = 1; // POS-80C
+            }
+            return {
+              name: prod.name || item.name || 'Producto',
+              quantity: item.quantity || 1,
+              price: Number(prod.price || item.price || 0),
+              print_id: printId,
+            };
+          }),
+        };
+        sendToLocalPrinter(printPayload);
+      }
     } catch (err) {
       console.error("updateTableOrder crash:", err);
     }

@@ -134,3 +134,28 @@ npm run test:concurrent-same-table # Edición simultánea sobre la misma mesa
 npm run test:slow-network          # Latencia de 3.5s en red WiFi
 npm run test:offline-retry         # Caída de red y recuperación de snapshot
 ```
+
+---
+
+## 7. Incidente Real de CPU Saturada y Diagnóstico de Error `40001`
+
+### 🚨 Incidente Registrado (24-Sep-2026)
+- **Síntoma en Supabase:** Alerta "Your project is currently facing high CPU usage", pico masivo de **5,298,341 peticiones** y **5,295,553 errores** (0.1% de éxito) en un rango de pocas horas.
+- **Mensaje de Error:** `40001 TABLE_ORDER_CONFLICT` repetido miles de veces por segundo en los logs de Postgres.
+
+### 🔬 Análisis Téchnico y Causa Raíz
+1. **Origen del Error `40001`:** El RPC `save_table_order_audited` utiliza Control de Concurrencia Optimista (OCC) con `v_table.order_version`. Si dos dispositivos envían modificaciones sobre la misma mesa al mismo tiempo, el segundo envío falla intencionalmente con `raise exception 'TABLE_ORDER_CONFLICT' using errcode = '40001'` para no sobreescribir productos.
+2. **Causa del Pico de CPU:** El parámetro `idle_in_transaction_session_timeout` en PostgreSQL estaba en `0` (deshabilitado). Al ocurrir rechazos `40001`, las transacciones abortadas quedaban colgadas en estado `idle in transaction (aborted)` reteniendo los bloqueos `FOR UPDATE` en `pg_stat_activity`, colapsando el pool de conexiones de PostgREST / PgBouncer y disparando la CPU al 100%.
+
+### 🛠️ Solución Aplicada e Infraestructura
+1. **Configuración de Timeouts en PostgreSQL (Aplicada en Vivo):**
+   ```sql
+   ALTER DATABASE postgres SET idle_in_transaction_session_timeout = '20000';
+   ALTER ROLE authenticator SET idle_in_transaction_session_timeout = '20000';
+   ```
+2. **Protocolo de Recuperación en Caliente (Fast Reboot):**
+   - Ejecutar **Restart Project -> Fast reboot** en *Project Settings -> General* de Supabase para purgar buffers WAL y conexiones colgadas residuales.
+   - Los dispositivos clientes se reconectan automáticamente en 10-15 segundos.
+3. **Comprobación en el Cliente (`BarContext.jsx`):**
+   - El capturador `catch` en `performTableWrite` purga las escrituras pendientes (`pendingSyncTablesRef.delete(sTableId)`) al recibir `40001`, muestra la alerta de conflicto y ejecuta `fetchData(true)` para recargar la versión limpia sin entrar en bucles de reintento.
+
